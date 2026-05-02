@@ -11,6 +11,8 @@ import { Product, CartItem, View } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { useSiteData } from './hooks/useSiteData';
+import { db } from './lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 // Views (to be created)
 import { Home } from './views/Home';
@@ -76,15 +78,80 @@ function AppContent() {
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [hasLoadedCloud, setHasLoadedCloud] = useState(false);
 
-  // Persistence
+  // Cloud Sync: Load on login
+  useEffect(() => {
+    if (user) {
+      const loadCloud = async () => {
+        try {
+          // Sync Cart
+          const cartRef = doc(db, 'carts', user.uid);
+          const cartSnap = await getDoc(cartRef);
+          let masterCart = [...cart];
+          
+          if (cartSnap.exists()) {
+            const cloudItems = cartSnap.data().items || [];
+            cloudItems.forEach((c: CartItem) => {
+              if (!masterCart.find(l => l.id === c.id && l.size === c.size)) {
+                masterCart.push(c);
+              }
+            });
+          }
+
+          // Sync Wishlist
+          const wishRef = doc(db, 'wishlists', user.uid);
+          const wishSnap = await getDoc(wishRef);
+          let masterWish = [...wishlist];
+
+          if (wishSnap.exists()) {
+            const cloudWish = wishSnap.data().items || [];
+            cloudWish.forEach((id: number) => {
+              if (!masterWish.includes(id)) {
+                masterWish.push(id);
+              }
+            });
+          }
+          
+          setCart(masterCart);
+          setWishlist(masterWish);
+          setHasLoadedCloud(true);
+
+          // Update cloud with merged results
+          await Promise.all([
+            setDoc(cartRef, { items: masterCart, updatedAt: serverTimestamp() }),
+            setDoc(wishRef, { items: masterWish, updatedAt: serverTimestamp() })
+          ]);
+        } catch (e) {
+          console.error("Sync error:", e);
+        }
+      };
+      loadCloud();
+    } else {
+      setHasLoadedCloud(false);
+    }
+  }, [user?.uid]);
+
+  // Persistence (Local + Cloud)
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
+    if (user && hasLoadedCloud) {
+       setDoc(doc(db, 'carts', user.uid), { 
+         items: cart, 
+         updatedAt: serverTimestamp() 
+       }).catch(() => {});
+    }
+  }, [cart, user, hasLoadedCloud]);
 
   useEffect(() => {
     localStorage.setItem(WISH_STORAGE_KEY, JSON.stringify(wishlist));
-  }, [wishlist]);
+    if (user && hasLoadedCloud) {
+       setDoc(doc(db, 'wishlists', user.uid), { 
+         items: wishlist, 
+         updatedAt: serverTimestamp() 
+       }).catch(() => {});
+    }
+  }, [wishlist, user, hasLoadedCloud]);
 
   // Toast handler
   const showToast = (message: string) => {

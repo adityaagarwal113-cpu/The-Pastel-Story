@@ -115,5 +115,13 @@ service cloud.firestore {
                (!('galleryImages' in data) || (data.galleryImages is list && data.galleryImages.size() <= 50));
       }
     }
+
+    // --- Carts & Wishlists ---
+    match /carts/{userId} {
+      allow get, write: if isOwner(userId);
+    }
+    match /wishlists/{userId} {
+      allow get, write: if isOwner(userId);
+    }
   }
 }
