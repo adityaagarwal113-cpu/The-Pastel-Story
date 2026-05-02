@@ -1,12 +1,9 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, ChevronLeft, Trash2, Plus, Minus, CreditCard, Gift, Truck, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, ChevronLeft, Trash2, Plus, Minus, CreditCard, Gift, Truck } from 'lucide-react';
 import { CartItem, View } from '../types';
 import { Footer } from '../components/Footer';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 interface CartProps {
   cart: CartItem[];
@@ -15,9 +12,10 @@ interface CartProps {
   onClear: () => void;
   setView: (view: View) => void;
   onOpenAuth: () => void;
+  setCheckoutData: (data: any) => void;
 }
 
-export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth }: CartProps) {
+export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth, setCheckoutData }: CartProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -26,7 +24,6 @@ export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth
     pincode: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
 
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.price * item.qty, 0), [cart]);
   const shipping = subtotal >= 999 ? 0 : 99;
@@ -43,62 +40,16 @@ export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth
        return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      const itemsString = cart.map(i => `${i.name} (${i.size}) x${i.qty}`).join(', ');
-
-      const orderRef = doc(collection(db, 'orders'));
-      const path = `orders/${orderRef.id}`;
-      
-      await setDoc(orderRef, {
-        orderId,
-        userId: user.uid,
-        userName: formData.name,
-        userPhone: formData.phone,
-        address: formData.address,
-        pincode: formData.pincode,
-        items: itemsString,
-        total: total,
-        status: 'Order Placed',
-        timestamp: serverTimestamp(),
-      });
-
-      setOrderSuccess(orderId);
-      onClear();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'orders');
-    } finally {
-      setIsSubmitting(false);
-    }
+    const itemsString = cart.map(i => `${i.name} (${i.size}) x${i.qty}`).join(', ');
+    
+    setCheckoutData({
+      ...formData,
+      total,
+      items: itemsString
+    });
+    
+    setView('payment');
   };
-
-  if (orderSuccess) {
-    return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full px-4 text-center"
-        >
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8">
-            <CheckCircle2 className="w-12 h-12 text-green-500" />
-          </div>
-          <h2 className="font-serif text-4xl text-dark mb-4 italic">Order Placed!</h2>
-          <p className="text-light text-sm mb-6 uppercase tracking-widest">Order ID: <span className="text-gold font-bold">{orderSuccess}</span></p>
-          <p className="text-mid text-sm mb-10 leading-relaxed opacity-70">
-            Thank you for choosing The Pastel Story. Your pieces are being curated with love.
-          </p>
-          <button 
-            onClick={() => setView('shop')}
-            className="w-full bg-dark text-white px-10 py-4 rounded-xl font-bold text-xs tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all shadow-xl shadow-dark/20"
-          >
-            Continue Shopping
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
 
   if (cart.length === 0) {
     return (
@@ -252,11 +203,11 @@ export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth
                  <button 
                   disabled={isSubmitting}
                   onClick={handleCheckout}
-                  className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hoverScale active:scale-95 transition-all flex items-center justify-center gap-4 mt-6 disabled:opacity-50 disabled:scale-100"
+                  className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 mt-6 disabled:opacity-50 disabled:scale-100"
                  >
                    {isSubmitting ? 'Syncing Story...' : (
                       <>
-                        <CreditCard className="w-5 h-5" /> {user ? 'Place Order' : 'Sign In to Order'}
+                        <CreditCard className="w-5 h-5" /> {user ? 'Proceed to Payment' : 'Sign In to Shop'}
                       </>
                    )}
                  </button>

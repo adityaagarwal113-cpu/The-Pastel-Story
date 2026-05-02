@@ -17,6 +17,7 @@ import { Home } from './views/Home';
 import { Shop } from './views/Shop';
 import { ProductDetail } from './views/ProductDetail';
 import { Cart } from './views/Cart';
+import { Payment } from './views/Payment';
 import { Wishlist } from './views/Wishlist';
 import { TrackOrder } from './views/TrackOrder';
 import { Help } from './views/Help';
@@ -54,6 +55,7 @@ function AppContent() {
   };
 
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [checkoutData, setCheckoutData] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -209,6 +211,14 @@ function AppContent() {
                 onClear={() => setCart([])}
                 setView={navigateTo}
                 onOpenAuth={() => setIsAuthModalOpen(true)}
+                setCheckoutData={setCheckoutData}
+              />
+            )}
+            {currentView === 'payment' && checkoutData && (
+              <Payment 
+                checkoutData={checkoutData}
+                onClearCart={() => setCart([])}
+                setView={navigateTo}
               />
             )}
             {currentView === 'track' && <TrackOrder />}

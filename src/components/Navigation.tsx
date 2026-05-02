@@ -52,8 +52,10 @@ export function Navigation({
   };
 
   const handleLogout = () => {
-    setIsMobileMenuOpen(false);
-    setTimeout(() => logout(), 100);
+    if (window.confirm('Are you sure you want to sign out? Your current story session will end.')) {
+      setIsMobileMenuOpen(false);
+      setTimeout(() => logout(), 100);
+    }
   };
 
   const categories = siteConfig?.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
@@ -113,7 +115,7 @@ export function Navigation({
                   </span>
                 </div>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="p-2 text-mid hover:text-gold transition-colors"
                   title="Logout"
                 >

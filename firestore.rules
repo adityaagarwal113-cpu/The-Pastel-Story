@@ -83,7 +83,7 @@ service cloud.firestore {
       allow update: if isAdmin() && (
         // Action: Update Status
         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-        incoming().status in ['Order Placed', 'Processing', 'Shipped', 'Delivered']
+        incoming().status in ['Payment Pending Verification', 'Order Placed', 'Processing', 'Shipped', 'Delivered']
       );
 
       function isValidOrder(data) {
@@ -91,13 +91,14 @@ service cloud.firestore {
                isValidId(data.orderId) &&
                data.userId == request.auth.uid &&
                data.total is number && data.total >= 0 &&
-               data.status == 'Order Placed' &&
+               data.status in ['Order Placed', 'Payment Pending Verification'] &&
                data.timestamp == request.time &&
                data.userName is string && data.userName.size() <= 100 &&
                data.userPhone is string && data.userPhone.size() <= 20 &&
                data.address is string && data.address.size() <= 500 &&
                data.pincode is string && data.pincode.size() <= 10 &&
-               data.items is string && data.items.size() <= 5000;
+               data.items is string && data.items.size() <= 5000 &&
+               (!('paymentProof' in data) || (data.paymentProof is string && data.paymentProof.size() <= 200));
       }
     }
 
