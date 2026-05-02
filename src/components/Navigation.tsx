@@ -174,7 +174,7 @@ export function Navigation({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 35, stiffness: 350 }}
-              className="fixed top-0 right-0 w-[80%] max-w-sm h-screen bg-[#fdf6ee] flex flex-col z-[2001] shadow-2xl rounded-l-2xl"
+              className="fixed top-0 right-0 w-[85%] max-w-sm h-screen bg-[#fdf6ee] flex flex-col z-[2001] shadow-2xl rounded-l-3xl"
             >
 
               {/* HEADER */}
