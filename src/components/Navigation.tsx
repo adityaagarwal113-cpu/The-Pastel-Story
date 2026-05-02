@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, HelpCircle, LayoutGrid, User, Settings } from 'lucide-react';
 import { View } from '../types';
@@ -31,6 +31,11 @@ export function Navigation({
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // ✅ Fix: close menu when login/logout happens
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [user]);
+
   const navItems = [
     { label: 'Home', view: 'home' as View, icon: <LayoutGrid className="w-4 h-4" /> },
     { label: 'Shop', view: 'shop' as View, icon: <ShoppingBag className="w-4 h-4" /> },
@@ -40,29 +45,38 @@ export function Navigation({
     { label: 'Help', view: 'help' as View, icon: <HelpCircle className="w-4 h-4" /> },
   ];
 
+  // ✅ Fix: avoid animation conflict
   const handleNav = (view: View) => {
-    setView(view);
     setIsMobileMenuOpen(false);
+    setTimeout(() => setView(view), 100);
+  };
+
+  const handleLogout = () => {
+    setIsMobileMenuOpen(false);
+    setTimeout(() => logout(), 100);
   };
 
   const categories = siteConfig?.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
 
   return (
     <nav className="fixed top-0 inset-x-0 z-[1000] bg-[#fdf6ee]/90 backdrop-blur-xl border-b border-gold/10">
-
-      {/* TOP BAR */}
+      
+      {/* ===== DESKTOP / TABLET (UNCHANGED) ===== */}
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 
         <div className="flex items-center gap-4">
           {hasHistory && currentView !== 'home' && (
-            <button onClick={goBack} className="p-2 -ml-2 text-dark hover:text-gold">
+            <button 
+              onClick={goBack}
+              className="p-2 -ml-2 text-dark hover:text-gold transition-colors"
+            >
               <ChevronLeft className="w-6 h-6" />
             </button>
           )}
 
           <button
             onClick={() => handleNav('home')}
-            className="font-serif text-xl tracking-widest text-dark"
+            className="font-serif text-xl sm:text-2xl tracking-widest text-dark"
           >
             The Pastel <span className="text-gold italic">Story</span>
           </button>
@@ -94,7 +108,9 @@ export function Navigation({
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
                   <span className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">Welcome</span>
-                  <span className="text-[0.65rem] text-dark font-medium">{user.displayName?.split(' ')[0]}</span>
+                  <span className="text-[0.65rem] text-dark font-medium">
+                    {user.displayName?.split(' ')[0]}
+                  </span>
                 </div>
                 <button
                   onClick={logout}
@@ -123,83 +139,82 @@ export function Navigation({
             <span>{cartCount}</span>
           </button>
 
-          {/* MENU BUTTON */}
+          {/* MOBILE BUTTON */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="md:hidden p-2 border rounded"
           >
             <Menu className="w-5 h-5" />
           </button>
-
         </div>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* ===== MOBILE MENU (FIXED) ===== */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[2000] overflow-hidden"
+            className="fixed inset-0 z-[2000]"
           >
+
             {/* BACKDROP */}
-            <div 
+            <motion.div
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md cursor-pointer"
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             />
 
-            {/* ✅ FULL SCREEN MOBILE MENU */}
+            {/* RIGHT DRAWER */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 35, stiffness: 350, mass: 0.8 }}
-              className="absolute inset-y-0 right-0 w-full bg-[#fdf6ee] flex flex-col z-[2001] shadow-2xl"
+              transition={{ type: 'spring', damping: 35, stiffness: 350 }}
+              className="fixed top-0 right-0 w-[80%] max-w-sm h-screen bg-[#fdf6ee] flex flex-col z-[2001] shadow-2xl rounded-l-2xl"
             >
 
               {/* HEADER */}
               <div className="h-20 px-6 flex items-center justify-between border-b border-gold/10 bg-white">
                 <button
                   onClick={() => handleNav('home')}
-                  className="font-serif italic text-2xl text-dark tracking-tight"
+                  className="font-serif italic text-xl text-dark"
                 >
-                  The Pastel <span className="text-gold">Story</span>
+                  The Pastel Story
                 </button>
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-3 hover:bg-gold/5 rounded-full transition-colors"
-                >
-                  <X className="w-8 h-8 text-dark" />
+
+                <button onClick={() => setIsMobileMenuOpen(false)}>
+                  <X className="w-7 h-7 text-dark" />
                 </button>
               </div>
 
               {/* CONTENT */}
               <div className="flex-1 overflow-y-auto custom-scrollbar">
 
-                {/* NAV ITEMS */}
+                {/* NAV */}
                 <ul className="py-6 px-6 space-y-2">
                   {navItems.map((item) => (
                     <li key={item.label}>
                       <button
                         onClick={() => handleNav(item.view)}
-                        className={`w-full flex items-center justify-between py-5 border-b border-gold/5 text-xl font-serif italic tracking-wide group ${
-                          currentView === item.view ? 'text-gold' : 'text-dark'
-                        }`}
+                        className={`w-full flex items-center justify-between py-4 border-b border-gold/5 text-base font-serif italic tracking-wide group ${currentView === item.view ? 'text-gold' : 'text-dark'}`}
                       >
                         <div className="flex items-center gap-6">
-                          <span className={`transition-transform group-active:scale-110 ${currentView === item.view ? 'text-gold' : 'text-mid/50'}`}>
-                            {item.icon}
-                          </span>
-                          {item.label}
+                           <span className={currentView === item.view ? 'text-gold' : 'text-mid/50'}>
+                             {item.icon}
+                           </span>
+                           {item.label}
                         </div>
                         {item.label === 'Cart' && cartCount > 0 && (
-                          <span className="bg-gold text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                          <span className="bg-gold text-white text-[0.6rem] px-2 py-0.5 rounded-full font-bold">
                             {cartCount}
                           </span>
                         )}
                         {item.label === 'Wishlist' && wishCount > 0 && (
-                          <span className="bg-[#e29578] text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                          <span className="bg-[#e29578] text-white text-[0.6rem] px-2 py-0.5 rounded-full font-bold">
                             {wishCount}
                           </span>
                         )}
@@ -210,7 +225,7 @@ export function Navigation({
 
                 {/* COLLECTIONS */}
                 <div className="py-8 px-6 bg-white/50 backdrop-blur-sm border-y border-gold/5">
-                  <p className="text-[0.65rem] uppercase tracking-[0.3em] font-bold text-mid mb-6 flex items-center gap-3">
+                  <p className="text-[0.6rem] uppercase tracking-[0.3em] font-bold text-mid mb-6 flex items-center gap-3">
                     <span className="h-[1px] flex-1 bg-gold/10"></span>
                     Curations
                     <span className="h-[1px] flex-1 bg-gold/10"></span>
@@ -220,7 +235,7 @@ export function Navigation({
                       <button
                         key={cat}
                         onClick={() => handleNav('shop')}
-                        className="bg-white border border-gold/10 p-5 text-left capitalize hover:border-gold/30 transition-all rounded-2xl text-sm font-medium text-dark shadow-sm active:scale-95"
+                        className="bg-white border border-gold/10 p-5 text-left capitalize hover:border-gold/30 transition-all rounded-2xl text-[0.65rem] font-bold text-dark shadow-sm active:scale-95"
                       >
                         {cat}
                       </button>
@@ -229,7 +244,7 @@ export function Navigation({
                 </div>
 
                 {/* ACCOUNT */}
-                <div className="py-10 px-6">
+                <div className="px-6 py-10">
                   {user ? (
                     <div className="flex flex-col gap-6">
                       <div className="flex items-center gap-5 p-5 bg-white rounded-3xl border border-gold/10 shadow-sm">
@@ -243,14 +258,11 @@ export function Navigation({
                           <p className="text-[0.6rem] text-gold uppercase tracking-[0.2em] font-bold mt-0.5">Premium Member</p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <button
-                          onClick={() => {
-                            logout();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="flex items-center justify-center gap-3 py-4 text-[0.65rem] uppercase tracking-[0.2em] font-bold text-red-400 bg-red-50/50 rounded-2xl border border-red-100 active:scale-95 transition-all"
+                          onClick={handleLogout}
+                          className="flex items-center justify-center gap-3 py-4 text-[0.6rem] uppercase tracking-[0.2em] font-bold text-red-400 bg-red-50/50 rounded-2xl border border-red-100 active:scale-95 transition-all"
                         >
                           <LogOut className="w-4 h-4" />
                           Sign Out
@@ -259,7 +271,7 @@ export function Navigation({
                         {isAdmin && (
                           <button
                             onClick={() => handleNav('admin')}
-                            className="flex items-center justify-center gap-3 py-4 text-[0.65rem] uppercase tracking-[0.2em] font-bold text-dark bg-white rounded-2xl border border-gold/20 shadow-sm active:scale-95 transition-all"
+                            className="flex items-center justify-center gap-3 py-4 text-[0.6rem] uppercase tracking-[0.2em] font-bold text-dark bg-white rounded-2xl border border-gold/20 shadow-sm active:scale-95 transition-all"
                           >
                             <Settings className="w-4 h-4 text-gold" />
                             Admin
@@ -270,8 +282,8 @@ export function Navigation({
                   ) : (
                     <button
                       onClick={() => {
-                        onOpenAuth();
                         setIsMobileMenuOpen(false);
+                        onOpenAuth();
                       }}
                       className="w-full py-5 bg-dark text-white rounded-2xl text-xs uppercase tracking-[0.3em] font-bold shadow-2xl shadow-dark/20 hover:bg-gold transition-all flex items-center justify-center gap-4"
                     >
@@ -291,7 +303,6 @@ export function Navigation({
                      <div className="w-1.5 h-1.5 rounded-full bg-gold/40 animate-pulse delay-150"></div>
                   </div>
                 </div>
-
               </div>
             </motion.div>
           </motion.div>

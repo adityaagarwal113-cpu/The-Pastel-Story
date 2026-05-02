@@ -38,8 +38,8 @@ export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth
       return;
     }
 
-    if (!formData.name || !formData.phone || !formData.address) {
-       alert('Please fill in your delivery details');
+    if (!formData.name || !formData.phone || !formData.address || !formData.pincode) {
+       alert('Please fill in your delivery details (Name, Phone, Address, and Pincode)');
        return;
     }
 
