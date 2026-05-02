@@ -58,8 +58,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      // Ensure we explicitly catch popup block or domain issues
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error('Google Sign-In Error:', error);
+      console.log('Current Hostname:', window.location.hostname);
+      
+      if (error.code === 'auth/unauthorized-domain') {
+        alert(
+          `Domain Unauthorized: Firebase doesn't recognize "${window.location.hostname}". \n\n` +
+          `If you've already added this to Authorized Domains, please wait 2-3 minutes for Firebase to propagate. \n\n` +
+          `On mobile, also ensure you don't have "Prevent Cross-Site Tracking" or "Block All Cookies" enabled in your browser settings.`
+        );
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // Normal behavior
+      } else {
+        alert(`Login Error: ${error.message}`);
+      }
+    }
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
