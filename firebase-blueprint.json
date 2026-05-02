@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private user profile data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "pincode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "address": { "type": "string" },
+        "pincode": { "type": "string" },
+        "items": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderId", "userId", "total", "status", "timestamp"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product catalog items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "images": { "type": "array" },
+        "colors": { "type": "array" },
+        "tags": { "type": "array" },
+        "sizes": { "type": "array" }
+      },
+      "required": ["id", "name", "price", "category", "images"]
+    },
+    "SiteConfig": {
+      "title": "Site Configuration",
+      "description": "Global website settings and content",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "marqueeText": { "type": "string" },
+        "quoteText": { "type": "string" },
+        "quoteAuthor": { "type": "string" },
+        "galleryImages": { "type": "array" },
+        "instagramUrl": { "type": "string" },
+        "categories": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profile documents"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer order records"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product catalog"
+    },
+    "/site_config/{configId}": {
+      "schema": "SiteConfig",
+      "description": "CMS settings"
+    }
+  }
+}

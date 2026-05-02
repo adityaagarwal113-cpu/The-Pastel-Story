@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500;600&display=swap');
+
+@theme {
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+
+  --color-cream: #fdf6ee;
+  --color-blush: #f5ddd6;
+  --color-gold: #c9a96e;
+  --color-gold-d: #b8864a;
+  --color-gold-light: #e8d5b0;
+  --color-dusty: #d4849a;
+  --color-dark: #3a2e2b;
+  --color-mid: #7a6259;
+  --color-light: #b8a09a;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-dark font-sans antialiased selection:bg-gold/20;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Custom scrollbar for boutique feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-light);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
