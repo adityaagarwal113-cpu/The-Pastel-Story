@@ -30,6 +30,7 @@ export function Navigation({
 
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   // ✅ Fix: close menu when login/logout happens
   useEffect(() => {
@@ -51,11 +52,10 @@ export function Navigation({
     setTimeout(() => setView(view), 100);
   };
 
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to sign out? Your current story session will end.')) {
-      setIsMobileMenuOpen(false);
-      setTimeout(() => logout(), 100);
-    }
+  const confirmLogout = () => {
+    setIsLogoutConfirmOpen(false);
+    setIsMobileMenuOpen(false);
+    setTimeout(() => logout(), 100);
   };
 
   const categories = siteConfig?.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
@@ -115,7 +115,7 @@ export function Navigation({
                   </span>
                 </div>
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setIsLogoutConfirmOpen(true)}
                   className="p-2 text-mid hover:text-gold transition-colors"
                   title="Logout"
                 >
@@ -263,7 +263,7 @@ export function Navigation({
 
                       <div className="grid grid-cols-2 gap-4">
                         <button
-                          onClick={handleLogout}
+                          onClick={() => setIsLogoutConfirmOpen(true)}
                           className="flex items-center justify-center gap-3 py-4 text-[0.6rem] uppercase tracking-[0.2em] font-bold text-red-400 bg-red-50/50 rounded-2xl border border-red-100 active:scale-95 transition-all"
                         >
                           <LogOut className="w-4 h-4" />
@@ -308,6 +308,49 @@ export function Navigation({
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== LOGOUT CONFIRMATION MODAL ===== */}
+      <AnimatePresence>
+        {isLogoutConfirmOpen && (
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLogoutConfirmOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl text-center"
+            >
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <LogOut className="w-8 h-8 text-red-400" />
+              </div>
+              <h3 className="font-serif text-2xl text-dark mb-2 italic">Sign Out?</h3>
+              <p className="text-mid text-sm leading-relaxed mb-8 opacity-70">
+                Are you sure you want to exit your session? Your wishlist and cart will be saved for your next visit.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setIsLogoutConfirmOpen(false)}
+                  className="py-4 bg-cream text-dark rounded-xl font-bold text-[0.6rem] uppercase tracking-widest hover:bg-gold/10 transition-colors"
+                >
+                  Stay Here
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="py-4 bg-red-500 text-white rounded-xl font-bold text-[0.6rem] uppercase tracking-widest shadow-lg shadow-red-500/20 active:scale-95 transition-all"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

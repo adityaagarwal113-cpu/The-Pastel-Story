@@ -43,15 +43,33 @@ function AppContent() {
   const [viewStack, setViewStack] = useState<View[]>(['home']);
   const currentView = viewStack[viewStack.length - 1];
 
+  // Browser behavior: Sync view stack with history
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.viewStack) {
+        setViewStack(event.state.viewStack);
+      } else {
+        setViewStack(['home']);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    // Initial state
+    window.history.replaceState({ viewStack: ['home'] }, '');
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const navigateTo = (view: View) => {
-    setViewStack(prev => [...prev, view]);
+    setViewStack(prev => {
+      const nextStack = [...prev, view];
+      window.history.pushState({ viewStack: nextStack }, '', `#${view}`);
+      return nextStack;
+    });
   };
 
   const goBack = () => {
-    setViewStack(prev => {
-      if (prev.length <= 1) return prev;
-      return prev.slice(0, -1);
-    });
+    window.history.back();
   };
 
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
