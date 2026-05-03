@@ -23,6 +23,7 @@
       "properties": {
         "orderId": { "type": "string" },
         "userId": { "type": "string" },
+        "userEmail": { "type": "string", "format": "email" },
         "userName": { "type": "string" },
         "userPhone": { "type": "string" },
         "address": { "type": "string" },

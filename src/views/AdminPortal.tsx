@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { optimizeImageForUpload } from '../lib/image-optimization';
+import { sendEmail, getShippingConfirmationHtml } from '../services/emailService';
 
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const { user } = useAuth();
@@ -152,9 +153,16 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
         updates.trackingId = trackingId;
         updates.trackingLink = `https://www.google.com/search?q=${trackingId}`;
         
-        // Mock Email sending
-        console.log(`[MAILER] Sending confirmation to ${currentOrder?.userName} for order ${currentOrder?.orderId}`);
-        console.log(`[MAILER] Tracking ID: ${trackingId}`);
+        // Real Email sending via Resend API
+        if (currentOrder?.userEmail) {
+          await sendEmail({
+            to: currentOrder.userEmail,
+            subject: `Your Parcel is Shipped! Order: ${currentOrder.orderId} | Pastel Story`,
+            html: getShippingConfirmationHtml(currentOrder.orderId, currentOrder.userName, trackingId, updates.trackingLink)
+          });
+        }
+        
+        console.log(`[MAILER] Shipping email triggered for: ${currentOrder?.userEmail || 'no-email@found.com'}`);
       }
 
       await updateDoc(doc(db, 'orders', orderId), updates);

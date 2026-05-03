@@ -15,6 +15,7 @@ import { db } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../contexts/AuthContext';
+import { sendEmail, getOrderConfirmationHtml } from '../services/emailService';
 
 interface PaymentProps {
   checkoutData: {
@@ -71,16 +72,26 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
       await setDoc(orderRef, {
         orderId,
         userId: user.uid,
+        userEmail: user.email,
         userName: checkoutData.name,
         userPhone: checkoutData.phone,
         address: checkoutData.address,
         pincode: checkoutData.pincode,
         items: checkoutData.items,
         total: checkoutData.total,
-        status: 'Order Placed', // Changed from Pending Verification
+        status: 'Order Placed',
         paymentProof: 'Uploaded',
         timestamp: serverTimestamp(),
       });
+
+      // Send confirmation email
+      if (user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: `Order Confirmed: ${orderId} | Pastel Story`,
+          html: getOrderConfirmationHtml(orderId, checkoutData.name, checkoutData.total)
+        });
+      }
 
       setOrderSuccess(orderId);
       onClearCart();
@@ -114,9 +125,10 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
             <CheckCircle2 className="w-12 h-12 text-green-500" />
           </div>
           <h2 className="font-serif text-4xl text-dark mb-4 italic">Order Placed!</h2>
-          <p className="text-light text-sm mb-6 uppercase tracking-widest">Order ID: <span className="text-gold font-bold">{orderSuccess}</span></p>
+          <p className="text-light text-sm mb-2 uppercase tracking-widest">Order ID: <span className="text-gold font-bold">{orderSuccess}</span></p>
+          <p className="text-[0.6rem] text-gold font-bold uppercase tracking-[0.2em] mb-8">Confirmation Email Sent</p>
           <p className="text-mid text-sm mb-10 leading-relaxed opacity-70">
-            Your pieces are now being curated! We've received your payment proof and will finish processing your order shortly.
+            Your pieces are now being curated! We've received your payment proof and will finish processing your order shortly. A copy of your order details has been sent to your email.
           </p>
           <button 
             onClick={() => setView('shop')}
