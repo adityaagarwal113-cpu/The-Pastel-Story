@@ -94,8 +94,27 @@ export function TrackOrder({ siteConfig }: { siteConfig: any }) {
                      <h3 className="font-serif text-xl text-dark italic">{orderData.orderId}</h3>
                    </div>
                    <div className="text-right">
-                     <p className="text-[0.6rem] uppercase tracking-widest text-light mb-1">Est. Delivery</p>
-                     <p className="text-sm font-bold text-dark">5-7 Business Days</p>
+                     {orderData.trackingId ? (
+                       <div className="flex flex-col items-end">
+                          <p className="text-[0.6rem] uppercase tracking-widest text-gold font-bold mb-1">Tracking ID</p>
+                          <p className="text-sm font-bold text-dark font-mono">{orderData.trackingId}</p>
+                          {orderData.trackingLink && (
+                            <a 
+                              href={orderData.trackingLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[0.55rem] text-gold hover:underline mt-1 font-bold uppercase tracking-widest"
+                            >
+                              Click to Track Parcel
+                            </a>
+                          )}
+                       </div>
+                     ) : (
+                       <>
+                         <p className="text-[0.6rem] uppercase tracking-widest text-light mb-1">Est. Delivery</p>
+                         <p className="text-sm font-bold text-dark">5-7 Business Days</p>
+                       </>
+                     )}
                    </div>
                 </div>
 

@@ -331,7 +331,7 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
                 </div>
 
                 {/* Status Tiles */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-cream/40 p-6 rounded-[2rem] flex items-center gap-4 border border-gold/5">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${getStatusColor(selectedOrder.status)}`}>
                       {getStatusIcon(selectedOrder.status)}
@@ -358,15 +358,58 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
                     </div>
                   </div>
 
-                  <div className="bg-cream/40 p-6 rounded-[2rem] flex items-center gap-4 border border-gold/5">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-green-50 text-green-500">
-                      <CreditCard className="w-6 h-6" />
+                  {selectedOrder.trackingId ? (
+                    <div className="bg-gold/5 p-6 rounded-[2rem] flex flex-col justify-center border border-gold/10">
+                      <p className="text-[0.5rem] uppercase tracking-widest font-bold text-gold opacity-60">Courier ID</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-dark font-mono">{selectedOrder.trackingId}</p>
+                        {selectedOrder.trackingLink && (
+                          <a 
+                            href={selectedOrder.trackingLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[0.55rem] text-dark hover:text-gold underline font-bold uppercase tracking-widest ml-2"
+                          >
+                            Track
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[0.5rem] uppercase tracking-widest font-bold opacity-40">Total Value</p>
-                      <p className="text-xs font-bold text-dark">₹{selectedOrder.total.toLocaleString('en-IN')}</p>
+                  ) : (
+                    <div className="bg-green-50/30 p-6 rounded-[2rem] flex items-center gap-4 border border-green-500/5">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-green-50 text-green-500">
+                        <CreditCard className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-[0.5rem] uppercase tracking-widest font-bold opacity-40">Total Value</p>
+                        <p className="text-xs font-bold text-dark">₹{selectedOrder.total.toLocaleString('en-IN')}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {!selectedOrder.trackingId && (
+                    <div className="bg-blue-50/30 p-6 rounded-[2rem] flex items-center gap-4 border border-blue-500/5">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-blue-50 text-blue-500">
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-[0.5rem] uppercase tracking-widest font-bold opacity-40">Order Type</p>
+                        <p className="text-xs font-bold text-dark">Prepaid</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedOrder.trackingId && (
+                    <div className="bg-green-50/30 p-6 rounded-[2rem] flex items-center gap-4 border border-green-500/5">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-green-50 text-green-500">
+                        <CreditCard className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-[0.5rem] uppercase tracking-widest font-bold opacity-40">Total Value</p>
+                        <p className="text-xs font-bold text-dark">₹{selectedOrder.total.toLocaleString('en-IN')}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

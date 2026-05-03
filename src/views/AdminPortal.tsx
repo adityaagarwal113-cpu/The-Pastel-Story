@@ -42,6 +42,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProduct, setIsEditingProduct] = useState<Product | null>(null);
   const [isEditingReview, setIsEditingReview] = useState<any | null>(null);
+  const [editingTracking, setEditingTracking] = useState<{ id: string, trackingId: string, trackingLink: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
@@ -149,7 +150,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       if (status === 'Shipped' && !currentOrder?.trackingId) {
         const trackingId = `PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         updates.trackingId = trackingId;
-        updates.trackingLink = `https://track.pastelstory.com/${trackingId}`;
+        updates.trackingLink = `https://www.google.com/search?q=${trackingId}`;
         
         // Mock Email sending
         console.log(`[MAILER] Sending confirmation to ${currentOrder?.userName} for order ${currentOrder?.orderId}`);
@@ -433,13 +434,65 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         </td>
                         <td className="px-8 py-6 font-bold">₹{order.total.toLocaleString('en-IN')}</td>
                         <td className="px-8 py-6">
-                          {order.trackingId ? (
-                            <div className="space-y-1">
+                          {editingTracking?.id === order.id ? (
+                            <div className="flex flex-col gap-2 min-w-[200px]">
+                              <input 
+                                type="text"
+                                placeholder="Tracking ID"
+                                value={editingTracking.trackingId}
+                                onChange={(e) => setEditingTracking({...editingTracking, trackingId: e.target.value})}
+                                className="w-full text-[0.6rem] p-1 bg-cream/30 border border-gold/10 rounded outline-none"
+                              />
+                              <input 
+                                type="text"
+                                placeholder="Tracking Link"
+                                value={editingTracking.trackingLink}
+                                onChange={(e) => setEditingTracking({...editingTracking, trackingLink: e.target.value})}
+                                className="w-full text-[0.6rem] p-1 bg-cream/30 border border-gold/10 rounded outline-none"
+                              />
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={async () => {
+                                    try {
+                                      await updateDoc(doc(db, 'orders', order.id), {
+                                        trackingId: editingTracking.trackingId,
+                                        trackingLink: editingTracking.trackingLink
+                                      });
+                                      setEditingTracking(null);
+                                    } catch (error) {
+                                      handleFirestoreError(error, OperationType.UPDATE, `orders/${order.id}`);
+                                    }
+                                  }}
+                                  className="text-[0.6rem] bg-gold text-white px-2 py-1 rounded font-bold uppercase tracking-widest"
+                                >
+                                  Save
+                                </button>
+                                <button 
+                                  onClick={() => setEditingTracking(null)}
+                                  className="text-[0.6rem] bg-cream text-mid px-2 py-1 rounded font-bold uppercase tracking-widest"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : order.trackingId ? (
+                            <div className="space-y-1 relative group/track">
                               <p className="text-[0.6rem] font-bold text-gold uppercase">{order.trackingId}</p>
                               <a href={order.trackingLink} target="_blank" className="text-[0.55rem] text-mid hover:underline italic">Track Link</a>
+                              <button 
+                                onClick={() => setEditingTracking({ id: order.id, trackingId: order.trackingId || '', trackingLink: order.trackingLink || '' })}
+                                className="absolute -top-1 -right-4 opacity-0 group-hover/track:opacity-100 transition-opacity p-1 bg-white shadow-sm border border-gold/10 rounded"
+                              >
+                                <Edit2 className="w-3 h-3 text-gold" />
+                              </button>
                             </div>
                           ) : (
-                            <span className="text-[0.6rem] text-mid/30 italic">Not Shipped</span>
+                            <button 
+                              onClick={() => setEditingTracking({ id: order.id, trackingId: '', trackingLink: '' })}
+                              className="text-[0.6rem] text-mid/30 italic hover:text-gold transition-colors"
+                            >
+                              Add Tracking
+                            </button>
                           )}
                         </td>
                         <td className="px-8 py-6">
