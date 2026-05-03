@@ -11,14 +11,15 @@
   --color-gold-d: #b8864a;
   --color-gold-light: #e8d5b0;
   --color-dusty: #d4849a;
-  --color-dark: #3a2e2b;
-  --color-mid: #7a6259;
+  --color-dark: #2a2220;
+  --color-mid: #6b5750;
   --color-light: #b8a09a;
 }
 
 @layer base {
   body {
-    @apply bg-cream text-dark font-sans antialiased selection:bg-gold/20;
+    @apply bg-cream text-dark font-sans antialiased selection:bg-gold/20 overflow-x-hidden;
+    letter-spacing: -0.01em;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -26,12 +27,27 @@
   }
 }
 
-.perspective-1000 {
-  perspective: 1000px;
-}
+@layer utilities {
+  .luxury-shadow {
+    box-shadow: 0 40px 100px -20px rgba(70, 40, 30, 0.15),
+                0 20px 40px -10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .glass {
+    @apply bg-white/40 backdrop-blur-xl border border-white/40;
+  }
+  
+  .text-micro {
+    @apply text-[0.6rem] uppercase tracking-[0.4em] font-bold;
+  }
 
-.backface-hidden {
-  backface-visibility: hidden;
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
 }
 
 /* Custom scrollbar for boutique feel */

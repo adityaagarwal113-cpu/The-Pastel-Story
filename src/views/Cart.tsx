@@ -16,6 +16,7 @@ interface CartProps {
   onEditItem: (item: CartItem) => void;
   onToggleSelection: (id: number, size: string, customization?: string) => void;
   onMoveToWishlist: (id: number, size: string, customization?: string) => void;
+  siteConfig: any;
 }
 
 export function Cart({ 
@@ -28,7 +29,8 @@ export function Cart({
   setCheckoutData, 
   onEditItem,
   onToggleSelection,
-  onMoveToWishlist
+  onMoveToWishlist,
+  siteConfig
 }: CartProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -87,105 +89,109 @@ export function Cart({
               Start Shopping
             </button>
         </div>
-        <Footer />
+        <Footer siteConfig={siteConfig} />
       </div>
     );
   }
 
   return (
-    <div className="bg-cream/30 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex items-center gap-4 mb-12">
-          <button onClick={() => setView('shop')} className="p-2 hover:bg-white rounded-full transition-colors">
-            <ChevronLeft className="w-6 h-6 text-dark" />
-          </button>
-          <h1 className="font-serif text-4xl text-dark italic">Shopping Bag</h1>
+    <div className="bg-[#faf8f6] min-h-screen pt-24">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-12 py-12">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16 border-b border-gold/10 pb-12">
+          <div>
+            <span className="text-micro text-gold mb-2 block">Your Archive</span>
+            <h1 className="font-serif text-5xl text-dark italic">Shopping Bag</h1>
+          </div>
           <button 
             onClick={() => setView('shop')}
-            className="ml-auto flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-widest text-gold hover:text-dark transition-colors px-4 py-2 bg-white rounded-full shadow-sm"
+            className="text-micro text-dark/40 hover:text-gold transition-colors flex items-center gap-2 italic lowercase"
           >
-            <Plus className="w-3 h-3" /> Shop More
+            <Plus className="w-3 h-3" /> back to selection
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-12 items-start">
-          {/* Items List */}
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 items-start">
+          {/* Items List - Minimal Editorial Style */}
+          <div className="lg:col-span-7 space-y-12">
             <AnimatePresence>
               {cart.map((item) => (
                 <motion.div
                   key={`${item.id}-${item.size}-${item.customization || ''}`}
                   layout
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className={`bg-white p-4 rounded-xl border transition-all flex gap-4 ${item.selected ? 'border-gold shadow-md' : 'border-gold/5 shadow-sm'}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="relative grid grid-cols-[100px_1fr] md:grid-cols-[140px_1fr] gap-8 group pb-12 border-b border-gold/5"
                 >
-                  <div className="flex flex-col justify-center">
+                  <div className="absolute -left-4 top-0 h-full flex flex-col justify-start pt-2">
                     <button 
                       onClick={() => onToggleSelection(item.id, item.size, item.customization)}
-                      className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
-                        item.selected ? 'bg-gold border-gold text-white' : 'border-gold/20 hover:border-gold/40'
+                      className={`w-4 h-4 transition-all duration-500 rounded-sm overflow-hidden flex items-center justify-center ${
+                        item.selected ? 'bg-gold border border-gold' : 'border border-gold/20 hover:border-gold/50'
                       }`}
                     >
-                      {item.selected && <span className="text-[10px] font-bold">✓</span>}
+                      {item.selected && <span className="text-[8px] text-white font-bold">✓</span>}
                     </button>
                   </div>
 
                   <div 
                     onClick={() => onEditItem(item)}
-                    className="w-20 aspect-[3/4] rounded-lg overflow-hidden shrink-0 bg-blush/20 cursor-pointer hover:opacity-80 transition-opacity"
+                    className="aspect-[3/4] overflow-hidden bg-[#eeebe7] cursor-pointer"
                   >
-                    <img src={item.img} className="w-full h-full object-cover object-top" alt={item.name} />
+                    <img src={item.img} className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-1000" alt={item.name} />
                   </div>
                   
-                  <div className="flex-1 flex flex-col justify-between py-1">
-                    <div onClick={() => onEditItem(item)} className="cursor-pointer group">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-medium text-dark group-hover:text-gold transition-colors">{item.name}</h3>
-                        <p className="font-semibold text-dark">₹{(item.price * item.qty).toLocaleString('en-IN')}</p>
+                  <div className="flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h3 className="font-serif italic text-2xl text-dark group-hover:text-gold transition-colors duration-500 cursor-pointer" onClick={() => onEditItem(item)}>
+                            {item.name}
+                          </h3>
+                          <p className="text-micro text-mid/40 mt-1">Silhouette: {item.size}</p>
+                        </div>
+                        <p className="font-medium text-lg tracking-tight">₹{(item.price * item.qty).toLocaleString('en-IN')}</p>
                       </div>
-                      <div className="flex flex-col gap-1 mb-4">
-                        <p className="text-[0.6rem] uppercase tracking-widest text-gold font-bold">Size: {item.size}</p>
-                        {item.customization && (
-                          <div className="bg-cream/40 p-2 rounded border border-gold/5 mt-1">
-                            <p className="text-[0.55rem] uppercase tracking-widest text-dark font-bold mb-1">Customization:</p>
-                            <p className="text-[0.65rem] text-dark/70 font-serif italic line-clamp-2 leading-relaxed">{item.customization}</p>
-                          </div>
-                        )}
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onMoveToWishlist(item.id, item.size, item.customization);
-                          }}
-                          className="text-[0.55rem] text-mid hover:text-gold font-bold uppercase tracking-widest underline underline-offset-4 mt-2 w-fit"
-                        >
-                          Move to Wishlist
-                        </button>
-                      </div>
+
+                      {item.customization && (
+                        <div className="bg-white/40 p-4 mb-4 border-l border-gold/30">
+                          <p className="text-micro text-gold mb-2 italic lowercase font-bold">bespoke details:</p>
+                          <p className="text-xs text-mid leading-relaxed italic line-clamp-2">{item.customization}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between">
-                       <div className="flex items-center border border-gold/10 rounded-lg bg-cream/50">
+                       <div className="flex items-center gap-6">
+                          <div className="flex items-center border border-gold/10 px-2 py-1 rounded-sm">
+                            <button 
+                              onClick={() => onUpdateQty(item.id, item.size, -1, item.customization)}
+                              className="p-1 hover:text-gold transition-colors text-mid/40"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-8 text-center text-xs font-bold">{item.qty}</span>
+                            <button 
+                              onClick={() => onUpdateQty(item.id, item.size, 1, item.customization)}
+                              className="p-1 hover:text-gold transition-colors text-mid/40"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          
                           <button 
-                            onClick={() => onUpdateQty(item.id, item.size, -1, item.customization)}
-                            className="p-2 hover:text-gold transition-colors"
+                            onClick={() => onMoveToWishlist(item.id, item.size, item.customization)}
+                            className="text-micro text-mid/40 hover:text-gold transition-colors italic lowercase border-b border-transparent hover:border-gold/20"
                           >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="w-8 text-center text-sm font-semibold">{item.qty}</span>
-                          <button 
-                            onClick={() => onUpdateQty(item.id, item.size, 1, item.customization)}
-                            className="p-2 hover:text-gold transition-colors"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
+                            save in journal
                           </button>
                        </div>
+
                        <button 
                         onClick={() => onRemove(item.id, item.size, item.customization)}
-                        className="text-light hover:text-red-500 transition-colors p-2"
+                        className="text-red-300 hover:text-red-500 transition-colors p-2"
                        >
-                         <Trash2 className="w-4 h-4" />
+                         <Trash2 className="w-3.5 h-3.5" />
                        </button>
                     </div>
                   </div>
@@ -193,103 +199,107 @@ export function Cart({
               ))}
             </AnimatePresence>
             
-            <motion.button
-              layout
+            <button
               onClick={() => setView('shop')}
-              className="w-full py-4 border-2 border-dashed border-gold/20 rounded-xl text-[0.65rem] font-bold uppercase tracking-widest text-mid hover:border-gold/40 hover:text-gold transition-all flex items-center justify-center gap-2 mb-8"
+              className="w-full py-6 border border-dashed border-gold/20 text-micro text-mid/40 hover:border-gold/40 hover:text-gold transition-all italic lowercase flex items-center justify-center gap-3"
             >
-              <Plus className="w-4 h-4" /> Add More Items
-            </motion.button>
+              <Plus className="w-3 h-3" /> find more beauty
+            </button>
           </div>
 
-          {/* Checkout UI */}
-          <div className="space-y-6">
-            <div className="bg-dark text-white p-8 rounded-2xl shadow-2xl space-y-6 sticky top-32">
-              <h2 className="text-[0.7rem] uppercase tracking-[0.4em] font-bold text-gold border-b border-white/10 pb-4 mb-6">Order Summary</h2>
+          {/* Checkout UI - Floating Modern Box */}
+          <div className="lg:col-span-5 space-y-8 sticky top-48">
+            <div className="bg-white p-10 luxury-shadow space-y-10">
+              <h2 className="text-micro text-gold mb-8">Curated Summary</h2>
               
-              <div className="space-y-4 pt-2">
-                <div className="flex justify-between text-sm opacity-70">
+              <div className="space-y-6">
+                <div className="flex justify-between text-xs tracking-widest uppercase text-mid/60">
                   <span>Subtotal</span>
                   <span>₹{subtotal.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-sm opacity-70">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
+                <div className="flex justify-between text-xs tracking-widest uppercase text-mid/60">
+                  <span>Logistics</span>
+                  <span className="text-gold font-bold">{shipping === 0 ? 'COMPLIMENTARY' : `₹${shipping}`}</span>
                 </div>
-                {shipping > 0 && (
-                  <div className="p-3 bg-white/5 rounded border border-white/10 text-[0.65rem] italic leading-relaxed">
-                    Add ₹{(999 - subtotal).toLocaleString('en-IN')} more to get FREE shipping!
-                  </div>
-                )}
                 
-                <div className="pt-6 border-t border-white/10 flex justify-between items-baseline">
-                  <span className="font-serif text-2xl font-light">Total</span>
-                  <span className="font-serif text-3xl font-bold text-gold">₹{total.toLocaleString('en-IN')}</span>
+                <div className="pt-8 border-t border-gold/5 flex justify-between items-baseline">
+                  <span className="font-serif text-3xl font-light italic">Estimate</span>
+                  <span className="font-serif text-4xl font-bold text-dark">₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
-              <div className="pt-8 space-y-4">
-                 <div className="space-y-4 text-white">
-                   <div className="space-y-1">
-                     <label className="text-[0.55rem] uppercase tracking-widest text-gold font-bold">Delivery Contact</label>
+              <div className="space-y-4 pt-10 border-t border-gold/5">
+                 <div className="space-y-6">
+                   <div className="space-y-3">
+                     <label className="text-micro text-gold">Archived User Name</label>
                      <input 
                       type="text" 
-                      placeholder="Full Name" 
+                      placeholder="Shipping Name" 
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-gold outline-none transition-all placeholder:text-white/20"
+                      className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif"
                      />
                    </div>
-                   <div className="grid grid-cols-2 gap-4">
-                     <input 
-                      type="tel" 
-                      placeholder="Phone" 
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-gold outline-none transition-all placeholder:text-white/20"
-                     />
-                     <input 
-                      type="text" 
-                      placeholder="Pincode" 
-                      value={formData.pincode}
-                      onChange={(e) => setFormData({...formData, pincode: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-gold outline-none transition-all placeholder:text-white/20"
+                   <div className="grid grid-cols-2 gap-8">
+                     <div className="space-y-3">
+                       <label className="text-micro text-gold">Contact Line</label>
+                       <input 
+                        type="tel" 
+                        placeholder="Phone" 
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif"
+                       />
+                     </div>
+                     <div className="space-y-3">
+                       <label className="text-micro text-gold">Pin Point</label>
+                       <input 
+                        type="text" 
+                        placeholder="Pincode" 
+                        value={formData.pincode}
+                        onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                        className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif"
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-3">
+                     <label className="text-micro text-gold">The Destination</label>
+                     <textarea 
+                      placeholder="Complete Address" 
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      rows={2}
+                      className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif resize-none"
                      />
                    </div>
-                   <textarea 
-                    placeholder="Full Delivery Address" 
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    rows={3}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-gold outline-none transition-all placeholder:text-white/20 resize-none"
-                   />
                  </div>
 
                  <button 
                   disabled={isSubmitting}
                   onClick={handleCheckout}
-                  className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 mt-6 disabled:opacity-50 disabled:scale-100"
+                  className="w-full py-6 bg-dark text-white font-bold text-micro tracking-[0.4em] uppercase hover:bg-gold hover:luxury-shadow transition-all flex items-center justify-center gap-6 mt-10 disabled:opacity-50"
                  >
-                   {isSubmitting ? 'Syncing Story...' : (
+                   {isSubmitting ? 'Sychnronizing...' : (
                       <>
-                        <CreditCard className="w-5 h-5" /> {user ? 'Proceed to Payment' : 'Sign In to Shop'}
+                        <CreditCard className="w-4 h-4" /> {user ? 'Proceed to Finality' : 'Sign In to Proceed'}
                       </>
                    )}
                  </button>
               </div>
 
-              <div className="pt-6 grid grid-cols-2 gap-4 border-t border-white/10 opacity-30">
-                 <div className="flex items-center gap-2 text-[0.55rem] uppercase tracking-widest">
-                    <Truck className="w-3 h-3" /> Secure Delivery
+              <div className="pt-8 flex justify-center gap-10 opacity-30">
+                 <div className="flex items-center gap-3 text-micro lowercase italic">
+                    <Truck className="w-3 h-3" /> secure shipping
                  </div>
-                 <div className="flex items-center gap-2 text-[0.55rem] uppercase tracking-widest">
-                    <Gift className="w-3 h-3" /> Gift Wrapped
+                 <div className="flex items-center gap-3 text-micro lowercase italic">
+                    <Gift className="w-3 h-3" /> gift archive
                  </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      <Footer setView={setView} siteConfig={siteConfig} />
     </div>
   );
 }

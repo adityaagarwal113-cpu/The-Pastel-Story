@@ -27,7 +27,7 @@ export interface CartItem {
   selected?: boolean;
 }
 
-export type View = 'home' | 'shop' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders';
+export type View = 'home' | 'shop' | 'about' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders';
 
 export interface Order {
   id?: string;

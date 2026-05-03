@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, MessageCircle, Mail, Clock, HelpCircle } from 'lucide-react';
 import { Footer } from '../components/Footer';
 
-export function Help() {
+export function Help({ siteConfig }: { siteConfig: any }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const faqs = [
@@ -23,7 +23,7 @@ export function Help() {
 
       <div className="max-w-3xl mx-auto px-4 py-20">
          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-20">
-            <a href="https://wa.me/918444929090" target="_blank" className="p-6 bg-cream/50 rounded-2xl border border-gold/10 hover:border-gold transition-all text-center space-y-3">
+            <a href={`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`} target="_blank" className="p-6 bg-cream/50 rounded-2xl border border-gold/10 hover:border-gold transition-all text-center space-y-3">
                <MessageCircle className="w-6 h-6 text-gold mx-auto" />
                <p className="text-[0.6rem] uppercase tracking-widest font-bold">WhatsApp</p>
                <p className="text-xs text-mid">Chat with us</p>
@@ -31,7 +31,7 @@ export function Help() {
             <div className="p-6 bg-cream/50 rounded-2xl border border-gold/10 text-center space-y-3">
                <Mail className="w-6 h-6 text-gold mx-auto" />
                <p className="text-[0.6rem] uppercase tracking-widest font-bold">Email</p>
-               <p className="text-xs text-mid">support@pastel.com</p>
+               <p className="text-xs text-mid">{siteConfig.contactEmail || 'support@pastel.com'}</p>
             </div>
             <div className="p-6 bg-cream/50 rounded-2xl border border-gold/10 text-center space-y-3">
                <Clock className="w-6 h-6 text-gold mx-auto" />
@@ -79,7 +79,7 @@ export function Help() {
                 If you haven't found what you're looking for, feel free to drop us a message on WhatsApp. We're here to help you find your perfect fit.
               </p>
               <button 
-                onClick={() => window.open('https://wa.me/918444929090', '_blank')}
+                onClick={() => window.open(`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`, '_blank')}
                 className="bg-gold text-white px-8 py-4 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105 transition-all shadow-xl shadow-gold/20"
               >
                 Contact Support
@@ -88,7 +88,7 @@ export function Help() {
          </div>
       </div>
 
-      <Footer />
+      <Footer siteConfig={siteConfig} />
     </div>
   );
 }

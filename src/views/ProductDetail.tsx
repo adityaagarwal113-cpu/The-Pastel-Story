@@ -8,6 +8,7 @@ import { ReviewSection } from '../components/ReviewSection';
 
 interface ProductDetailProps {
   product: Product;
+  siteConfig: any;
   onAddToCart: (id: number, size: string, customization?: string) => void;
   onWishlist: (id: number) => void;
   isWishlisted: boolean;
@@ -15,7 +16,7 @@ interface ProductDetailProps {
   initialEditItem?: CartItem;
 }
 
-export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
+export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
   const [mainImg, setMainImg] = useState(product.imgs[0]);
   const [selectedSize, setSelectedSize] = useState(initialEditItem?.size || product.sizes[0] || 'One Size');
   const [addedToCart, setAddedToCart] = useState(false);
@@ -61,49 +62,28 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
   const offPct = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-[0.65rem] uppercase tracking-widest text-light mb-12">
-          <button onClick={() => setView('home')} className="hover:text-gold transition-colors">Home</button>
+    <div className="bg-[#faf8f6] min-h-screen pt-24">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-12 py-12">
+        {/* Breadcrumb - Minimal */}
+        <div className="flex items-center gap-3 text-micro text-mid/50 mb-16">
+          <button onClick={() => setView('home')} className="hover:text-gold transition-colors">Archivio</button>
           <span>/</span>
-          <button onClick={() => setView('shop')} className="hover:text-gold transition-colors">Shop</button>
+          <button onClick={() => setView('shop')} className="hover:text-gold transition-colors">Selection</button>
           <span>/</span>
-          <span className="text-dark font-medium">{product.name}</span>
+          <span className="text-dark font-bold font-serif italic lowercase">{product.name}</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
-          {/* Gallery UI */}
-          <div className="space-y-6">
-             <div 
-              ref={zoomRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={() => setZoomStyle({ display: 'none' })}
-              className="relative aspect-[3/4] bg-blush/20 rounded-xl overflow-hidden cursor-zoom-in group shadow-2xl shadow-gold/5"
-            >
-              <img 
-                src={mainImg} 
-                className="w-full h-full object-cover object-top transition-transform duration-500 hover:opacity-0" 
-                alt={product.name}
-                referrerPolicy="no-referrer"
-              />
-              <div 
-                className="absolute inset-0 pointer-events-none" 
-                style={zoomStyle}
-              />
-              <div className="absolute bottom-4 right-4 bg-dark/40 backdrop-blur-md px-3 py-1 rounded text-[0.6rem] text-white tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity">
-                Hover to zoom
-              </div>
-            </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
+          {/* Gallery UI - High Resolution Vertical Grid focus */}
+          <div className="lg:col-span-7 flex flex-col md:flex-row gap-6">
             {product.imgs.length > 1 && (
-              <div className="flex gap-4 overflow-x-auto pb-4 scroller-hidden">
+              <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scroller-hidden shrink-0">
                 {product.imgs.map((img, i) => (
                   <button 
                     key={i}
                     onClick={() => setMainImg(img)}
-                    className={`relative w-20 aspect-[3/4] rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
-                      mainImg === img ? 'border-gold scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
+                    className={`relative w-20 aspect-[3/4] overflow-hidden transition-all duration-700 ${
+                      mainImg === img ? 'ring-1 ring-gold shadow-lg grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0'
                     }`}
                   >
                     <img src={img} className="w-full h-full object-cover object-top" alt="" referrerPolicy="no-referrer" />
@@ -111,52 +91,63 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                 ))}
               </div>
             )}
+            
+            <div className="flex-1 space-y-6">
+              <div 
+                ref={zoomRef}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={() => setZoomStyle({ display: 'none' })}
+                className="relative aspect-[3/4] bg-[#eeebe7] overflow-hidden cursor-zoom-in luxury-shadow group"
+              >
+                <img 
+                  src={mainImg} 
+                  className="w-full h-full object-cover object-top transition-all duration-1000 grayscale-[10%] group-hover:grayscale-0" 
+                  alt={product.name}
+                  referrerPolicy="no-referrer"
+                />
+                <div 
+                  className="absolute inset-0 pointer-events-none" 
+                  style={zoomStyle}
+                />
+                <div className="absolute inset-0 bg-dark/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+              </div>
+            </div>
           </div>
 
-          {/* Info UI */}
-          <div className="space-y-8 py-4">
-            <div>
-              <p className="text-[0.7rem] uppercase tracking-[0.4em] text-gold font-bold mb-4">
-                {CATEGORIES[product.category as keyof typeof CATEGORIES] || product.category}
-              </p>
-              <h1 className="font-serif text-4xl sm:text-5xl text-dark mb-4 leading-tight">{product.name}</h1>
-              <button 
-                onClick={scrollToReviews}
-                className="flex items-center gap-4 text-sm text-mid opacity-70 hover:opacity-100 transition-opacity"
-              >
-                 <div className="flex text-gold">
-                    {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
-                 </div>
-                 <span className="underline decoration-gold/30 underline-offset-4">See Reviews</span>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-baseline gap-4">
-                 <span className="font-serif text-4xl font-semibold text-dark">₹{product.price.toLocaleString('en-IN')}</span>
-                 {product.oldPrice && (
-                    <span className="text-xl text-light line-through font-light italic">₹{product.oldPrice.toLocaleString('en-IN')}</span>
-                 )}
-                 {offPct > 0 && (
-                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold uppercase tracking-widest">
-                      {offPct}% Off
-                    </span>
-                 )}
-              </div>
-              <p className="text-[0.65rem] text-light uppercase tracking-widest">Inclusve of all taxes</p>
-            </div>
-
+          {/* Info UI - Elegant Typography & Controls */}
+          <div className="lg:col-span-5 flex flex-col gap-12 sticky top-48">
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-[0.65rem] uppercase tracking-widest text-dark font-bold">Select Size</h3>
+              <span className="text-micro text-gold">The Pastel Story / SS '25</span>
+              <h1 className="font-serif text-5xl sm:text-7xl text-dark leading-[0.9] tracking-tight">{product.name}</h1>
+              <div className="flex items-center gap-6 mt-6">
+                <div className="flex items-baseline gap-4">
+                   <span className="font-serif text-3xl text-dark">₹{product.price.toLocaleString('en-IN')}</span>
+                   {product.oldPrice && (
+                      <span className="text-lg text-light line-through font-light opacity-50">₹{product.oldPrice.toLocaleString('en-IN')}</span>
+                   )}
+                </div>
                 <button 
-                  onClick={() => setIsSizeGuideOpen(true)}
-                  className="text-[0.6rem] uppercase tracking-widest text-gold hover:underline font-bold flex items-center gap-1"
+                  onClick={scrollToReviews}
+                  className="text-micro text-gold underline underline-offset-8 decoration-gold/20 hover:decoration-gold transition-all"
                 >
-                  <Info className="w-3 h-3" /> Size Guide
+                  Read Feedback
                 </button>
               </div>
-              <div className="flex flex-wrap gap-3">
+            </div>
+
+            <div className="h-px w-full bg-gold/10" />
+
+            <div className="space-y-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-micro text-dark">Silhouette Size</h3>
+                <button 
+                  onClick={() => setIsSizeGuideOpen(true)}
+                  className="text-micro text-gold hover:opacity-70 transition-opacity flex items-center gap-2"
+                >
+                  <Info className="w-3 h-3" /> Guide
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-4">
                 {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Custom'].map(size => {
                   const isAvailable = size === 'Custom' || (product.sizes || []).includes(size);
                   return (
@@ -167,28 +158,22 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                           setSelectedSize(size);
                           if (size !== 'Custom') setMeasurements('');
                       }}
-                      className={`relative min-w-[56px] h-14 border rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                      className={`relative min-w-[64px] h-16 border transition-all duration-700 flex items-center justify-center text-[0.7rem] font-bold ${
                         !isAvailable 
-                          ? 'border-gray-100 text-gray-300 cursor-not-allowed overflow-hidden opacity-60' 
+                          ? 'opacity-20 cursor-not-allowed line-through' 
                           : selectedSize === size 
-                            ? 'bg-dark text-white border-dark shadow-xl shadow-dark/20' 
-                            : 'border-gold/20 text-mid hover:border-gold'
+                            ? 'bg-dark text-white border-dark luxury-shadow' 
+                            : 'border-gold/10 text-mid/60 hover:border-gold hover:text-gold'
                       }`}
                     >
                       {size}
-                      {!isAvailable && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-full h-[1px] bg-red-400/50 -rotate-45" />
-                        </div>
-                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Customization / Custom Size Specification Box */}
-            <div className="space-y-6 pt-4">
+            <div className="space-y-4">
                 <AnimatePresence>
                 {selectedSize === 'Custom' && (
                     <motion.div 
@@ -198,10 +183,10 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                     className="space-y-4 overflow-hidden"
                     >
                     <div className="flex justify-between items-center">
-                        <h3 className="text-[0.65rem] uppercase tracking-widest text-dark font-bold">Size Specifications</h3>
+                        <h3 className="text-micro text-gold">Custom Measurements</h3>
                         <button 
                         onClick={() => setMeasurements('')}
-                        className="text-[0.6rem] text-red-400 font-bold uppercase tracking-widest hover:underline"
+                        className="text-micro text-red-400 hover:underline"
                         >
                         Clear
                         </button>
@@ -209,14 +194,9 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                     <textarea
                         value={measurements}
                         onChange={(e) => setMeasurements(e.target.value)}
-                        placeholder="Please provide measurements for: Bust, Waist, Hip, and Length here..."
-                        className={`w-full p-4 bg-cream/30 border rounded-xl outline-none transition-all font-serif italic text-sm min-h-[120px] resize-none ${
-                            !measurements.trim() ? 'border-red-200 focus:border-red-300' : 'border-gold/10 focus:border-gold/30'
-                        }`}
+                        placeholder="Bust, Waist, Hip, Length in inches..."
+                        className="w-full p-6 bg-white border border-gold/10 focus:border-gold/30 outline-none transition-all font-serif italic text-base min-h-[120px] resize-none luxury-shadow"
                     />
-                    <p className="text-[0.6rem] text-light leading-relaxed">
-                        * Please provide exact measurements in inches for a perfect fit.
-                    </p>
                     </motion.div>
                 )}
                 </AnimatePresence>
@@ -227,16 +207,16 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="space-y-4 overflow-hidden border-t border-gold/5 pt-4"
+                    className="space-y-4 overflow-hidden"
                     >
                     <div className="flex justify-between items-center">
-                        <h3 className="text-[0.65rem] uppercase tracking-widest text-dark font-bold">Additional Customization</h3>
+                        <h3 className="text-micro text-gold">Design Preferences</h3>
                         <button 
                         onClick={() => {
                             setAdditionalRequests('');
                             setShowAdditional(false);
                         }}
-                        className="text-[0.6rem] text-red-400 font-bold uppercase tracking-widest hover:underline"
+                        className="text-micro text-red-400 hover:underline"
                         >
                         Remove
                         </button>
@@ -244,26 +224,24 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                     <textarea
                         value={additionalRequests}
                         onChange={(e) => setAdditionalRequests(e.target.value)}
-                        placeholder="Please specify your custom requests, design changes, or special preferences here..."
-                        className="w-full p-4 bg-cream/30 border border-gold/10 focus:border-gold/30 rounded-xl outline-none transition-all font-serif italic text-sm min-h-[100px] resize-none"
+                        placeholder="Any specific design changes..."
+                        className="w-full p-6 bg-white border border-gold/10 focus:border-gold/30 outline-none transition-all font-serif italic text-base min-h-[100px] resize-none luxury-shadow"
                     />
                     </motion.div>
                 )}
                 </AnimatePresence>
 
                 {!showAdditional && (
-                <div className="pt-2">
-                    <div 
-                        onClick={() => setShowAdditional(true)}
-                        className="text-[0.6rem] uppercase tracking-[0.2em] font-bold text-mid/60 hover:text-gold transition-colors flex items-center gap-2 cursor-pointer group"
-                    >
-                        <Star className="w-3 h-3 group-hover:rotate-12 transition-transform" /> + Add Additional Customization / Requests
-                    </div>
-                </div>
+                  <button 
+                      onClick={() => setShowAdditional(true)}
+                      className="text-micro text-mid/40 hover:text-gold transition-colors italic lowercase"
+                  >
+                      + add customization details
+                  </button>
                 )}
             </div>
 
-            <div className="pt-8 flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
               <button 
                 disabled={product.oos || (selectedSize === 'Custom' && !measurements.trim())}
                 onClick={() => {
@@ -274,14 +252,14 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                     onAddToCart(product.id, selectedSize, combined);
                     setAddedToCart(true);
                 }}
-                className={`w-full py-5 rounded-xl font-bold text-xs tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-4 disabled:bg-gray-200 disabled:shadow-none ${
-                    addedToCart ? 'bg-green-500 text-white shadow-[0_20px_40px_rgba(34,197,94,0.3)]' : 'bg-gold text-white shadow-[0_20px_40px_rgba(201,169,110,0.3)]'
+                className={`w-full py-6 rounded-sm font-bold text-micro tracking-[0.4em] uppercase transition-all flex items-center justify-center gap-6 disabled:bg-gray-100 disabled:text-light/30 ${
+                    addedToCart ? 'bg-green-600 text-white' : 'bg-dark text-white hover:bg-gold hover:luxury-shadow'
                 }`}
               >
-                {product.oos ? '❌ Out of Stock' : (
+                {product.oos ? 'Sold Out' : (
                    <>
-                    {addedToCart ? <CheckCircle2 className="w-5 h-5" /> : <ShoppingBag className="w-5 h-5" />} 
-                    {addedToCart ? 'Added to Bag' : initialEditItem ? 'Update Order' : 'Add to Bag'}
+                    {addedToCart ? <CheckCircle2 className="w-4 h-4" /> : <ShoppingBag className="w-4 h-4" />} 
+                    {addedToCart ? 'Preserved in Bag' : initialEditItem ? 'Update Story' : 'Reserve to Bag'}
                    </>
                 )}
               </button>
@@ -289,74 +267,54 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
               <AnimatePresence>
                 {addedToCart && (
                   <motion.button
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    exit={{ opacity: 0, y: 10 }}
                     onClick={() => setView('cart')}
-                    className="w-full py-4 bg-dark text-white rounded-xl font-bold text-[0.65rem] tracking-widest uppercase shadow-xl flex items-center justify-center gap-3 group"
+                    className="w-full py-5 bg-white border border-gold/10 text-dark font-bold text-micro tracking-[0.3em] uppercase flex items-center justify-center gap-4 group"
                   >
-                    View Bag & Checkout <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    View Bag <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
                 )}
               </AnimatePresence>
 
               <button 
                 onClick={() => onWishlist(product.id)}
-                className={`w-full py-4 border rounded-xl font-bold text-[0.65rem] tracking-widest uppercase transition-all flex items-center justify-center gap-3 ${
-                  isWishlisted ? 'bg-dusty/10 border-dusty text-dusty' : 'border-gold/20 text-mid hover:border-gold/60'
+                className={`w-full py-5 text-micro tracking-[0.4em] uppercase transition-all flex items-center justify-center gap-4 ${
+                  isWishlisted ? 'text-dusty font-bold' : 'text-mid/60 hover:text-gold'
                 }`}
               >
-                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} /> {isWishlisted ? 'Saved in Wishlist' : 'Add to Wishlist'}
+                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} /> {isWishlisted ? 'Saved in Journal' : 'Add to Journal'}
               </button>
             </div>
 
-            <div className="border-t border-gold/10 pt-10 space-y-6">
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div className="flex gap-4">
-                     <div className="w-10 h-10 rounded-full bg-cream flex items-center justify-center shrink-0">
-                        <Truck className="w-4 h-4 text-gold" />
-                     </div>
-                     <div>
-                        <p className="text-[0.65rem] uppercase font-bold text-dark">Fast Delivery</p>
-                        <p className="text-[0.6rem] text-light">3-5 Banking days</p>
-                     </div>
-                  </div>
-                  <div className="flex gap-4">
-                     <div className="w-10 h-10 rounded-full bg-cream flex items-center justify-center shrink-0">
-                        <RotateCcw className="w-4 h-4 text-gold" />
-                     </div>
-                     <div>
-                        <p className="text-[0.65rem] uppercase font-bold text-dark">Easy Exchange</p>
-                        <p className="text-[0.6rem] text-light">7-day hassle free</p>
-                     </div>
-                  </div>
-                  <div className="flex gap-4">
-                     <div className="w-10 h-10 rounded-full bg-cream flex items-center justify-center shrink-0">
-                        <ShieldCheck className="w-4 h-4 text-gold" />
-                     </div>
-                     <div>
-                        <p className="text-[0.65rem] uppercase font-bold text-dark">100% Cotton</p>
-                        <p className="text-[0.6rem] text-light">Premium fabric</p>
-                     </div>
-                  </div>
-               </div>
-               
-               <div className="space-y-2">
-                  <h4 className="text-[0.7rem] uppercase tracking-widest text-gold font-bold">Product Story</h4>
-                  <p className="text-sm text-mid leading-relaxed opacity-70 italic font-serif">
-                    {product.desc}
-                  </p>
-               </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 border-t border-gold/5 opacity-60">
+              <div className="flex flex-col items-center text-center gap-3">
+                  <Truck className="w-4 h-4 text-gold-d" />
+                  <p className="text-micro">Artisanal Shipping</p>
+              </div>
+              <div className="flex flex-col items-center text-center gap-3 border-x border-gold/10">
+                  <RotateCcw className="w-4 h-4 text-gold-d" />
+                  <p className="text-micro">7 Day Exchange</p>
+              </div>
+              <div className="flex flex-col items-center text-center gap-3">
+                  <ShieldCheck className="w-4 h-4 text-gold-d" />
+                  <p className="text-micro">Fair Trade Cloth</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div ref={reviewsRef}>
+        <div className="mt-32 max-w-4xl mx-auto" ref={reviewsRef}>
+          <div className="flex items-center gap-8 mb-16">
+            <h2 className="font-serif text-4xl text-dark">Stories from users</h2>
+            <div className="h-px flex-1 bg-gold/10" />
+          </div>
           <ReviewSection productId={product.id} />
         </div>
       </div>
 
-      <Footer />
+      <Footer setView={setView} siteConfig={siteConfig} />
 
       {/* Size Guide Modal */}
       <AnimatePresence>

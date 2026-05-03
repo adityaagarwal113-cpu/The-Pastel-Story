@@ -26,10 +26,16 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     heroTitle: 'The Pastel Story',
     heroSubtitle: 'Effortless Elegance, Timeless Silhouettes',
     heroImage: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=1600&q=80',
+    heroButtonText: 'Explore Collection',
     marqueeText: '✦ FREE SHIPPING ON ORDERS ABOVE ₹999 ✦ HANDCRAFTED IN INDIA ✦ LUXURY PASTELS ✦',
     quoteText: '"Every colour in our palette is a feeling — chosen for women who embrace softness as their superpower."',
     quoteAuthor: 'Shiwani, Founder of The Pastel Story',
     instagramUrl: 'https://www.instagram.com/pastelstory_by_shiwani',
+    aboutTitle: 'Where Softness meets Modern Grace.',
+    aboutVision: 'The Pastel Story was born from a simple desire: to bring back the whisper of elegance in an era of loud trends. Shiwani founded this brand with the vision of creating a sanctuary of soft aesthetics.',
+    aboutImage: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80',
+    contactWhatsApp: '+91 84449 29090',
+    contactEmail: 'contact@pastelstory.com',
     galleryImages: [],
     categories: ['kurta', 'coord', 'dress', 'suit', 'sharara']
   });
@@ -136,7 +142,21 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
   const handleUpdateStatus = async (orderId: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status });
+      const updates: any = { status };
+      
+      // If moving to Shipped, generate a dummy tracking ID if none exists
+      const currentOrder = orders.find(o => o.id === orderId);
+      if (status === 'Shipped' && !currentOrder?.trackingId) {
+        const trackingId = `PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        updates.trackingId = trackingId;
+        updates.trackingLink = `https://track.pastelstory.com/${trackingId}`;
+        
+        // Mock Email sending
+        console.log(`[MAILER] Sending confirmation to ${currentOrder?.userName} for order ${currentOrder?.orderId}`);
+        console.log(`[MAILER] Tracking ID: ${trackingId}`);
+      }
+
+      await updateDoc(doc(db, 'orders', orderId), updates);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
     }
@@ -413,6 +433,16 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         </td>
                         <td className="px-8 py-6 font-bold">₹{order.total.toLocaleString('en-IN')}</td>
                         <td className="px-8 py-6">
+                          {order.trackingId ? (
+                            <div className="space-y-1">
+                              <p className="text-[0.6rem] font-bold text-gold uppercase">{order.trackingId}</p>
+                              <a href={order.trackingLink} target="_blank" className="text-[0.55rem] text-mid hover:underline italic">Track Link</a>
+                            </div>
+                          ) : (
+                            <span className="text-[0.6rem] text-mid/30 italic">Not Shipped</span>
+                          )}
+                        </td>
+                        <td className="px-8 py-6">
                           <span className={`px-3 py-1 rounded-full text-[0.6rem] font-bold uppercase tracking-widest ${
                             order.status === 'Order Placed' ? 'bg-blue-50 text-blue-500' :
                             order.status === 'Processing' ? 'bg-orange-50 text-orange-500' :
@@ -594,6 +624,15 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Hero Button Text</label>
+                    <input 
+                      type="text" 
+                      value={siteConfig.heroButtonText || 'Explore Collection'}
+                      onChange={(e) => setSiteConfig({...siteConfig, heroButtonText: e.target.value})}
+                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Subtitle</label>
                     <textarea 
                       value={siteConfig.heroSubtitle}
@@ -766,6 +805,111 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-xs"
                     />
                   </div>
+
+                  <div className="h-px w-full bg-gold/10 my-8" />
+                  
+                  <div className="flex items-center gap-4 mb-4">
+                    <Layout className="w-8 h-8 text-gold" />
+                    <h3 className="text-2xl font-serif italic text-dark">About Page Config</h3>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">About Main Title</label>
+                      <input 
+                        type="text" 
+                        value={siteConfig.aboutTitle || ''}
+                        onChange={(e) => setSiteConfig({...siteConfig, aboutTitle: e.target.value})}
+                        className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all font-serif italic text-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">About Vision Text</label>
+                      <textarea 
+                        value={siteConfig.aboutVision || ''}
+                        onChange={(e) => setSiteConfig({...siteConfig, aboutVision: e.target.value})}
+                        className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm h-32"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">About Secondary Text (Quality/Detail)</label>
+                      <textarea 
+                        value={siteConfig.aboutSecondary || ''}
+                        onChange={(e) => setSiteConfig({...siteConfig, aboutSecondary: e.target.value})}
+                        className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm h-32"
+                        placeholder="Text for the quality and detail section..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">About Page Image</label>
+                      <div 
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0];
+                          if (file && file.type.startsWith('image/')) {
+                            try {
+                              const url = await handleFileUpload(file);
+                              setSiteConfig({...siteConfig, aboutImage: url});
+                            } catch (e) {}
+                          }
+                        }}
+                        className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                      >
+                        <input 
+                          type="file" 
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const url = await handleFileUpload(file);
+                                setSiteConfig({...siteConfig, aboutImage: url});
+                              } catch (e) {}
+                            }
+                          }}
+                        />
+                        {siteConfig.aboutImage ? (
+                          <div className="flex flex-col items-center">
+                            <img src={siteConfig.aboutImage} className="w-20 h-20 object-cover rounded-lg mb-2" alt="" />
+                            <p className="text-micro text-mid">Click to Change</p>
+                          </div>
+                        ) : (
+                          <p className="text-micro text-mid">Upload About Image</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px w-full bg-gold/10 my-8" />
+
+                  <div className="flex items-center gap-4 mb-4">
+                    <User className="w-8 h-8 text-gold" />
+                    <h3 className="text-2xl font-serif italic text-dark">Contact & Info</h3>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">WhatsApp Number</label>
+                      <input 
+                        type="text" 
+                        value={siteConfig.contactWhatsApp || ''}
+                        onChange={(e) => setSiteConfig({...siteConfig, contactWhatsApp: e.target.value})}
+                        className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Support Email</label>
+                      <input 
+                        type="email" 
+                        value={siteConfig.contactEmail || ''}
+                        onChange={(e) => setSiteConfig({...siteConfig, contactEmail: e.target.value})}
+                        className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="h-px w-full bg-gold/10 my-8" />
 
                   <div className="space-y-2">
                     <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Manage Categories</label>

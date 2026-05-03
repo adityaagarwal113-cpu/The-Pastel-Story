@@ -17,6 +17,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 // Views (to be created)
 import { Home } from './views/Home';
 import { Shop } from './views/Shop';
+import { About } from './views/About';
 import { ProductDetail } from './views/ProductDetail';
 import { Cart } from './views/Cart';
 import { Payment } from './views/Payment';
@@ -98,6 +99,11 @@ function AppContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [hasLoadedCloud, setHasLoadedCloud] = useState(false);
+
+  // Global Scroll Reset on view change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentView, selectedProductId]);
 
   // Cloud Sync: Load on login
   useEffect(() => {
@@ -389,10 +395,12 @@ function AppContent() {
                 wishlist={wishlist}
               />
             )}
+            {currentView === 'about' && <About setView={navigateTo} siteConfig={siteConfig} />}
             {currentView === 'pdp' && selectedProductId && (
               <ProductDetail 
                 product={products.find(p => p.id === selectedProductId)!} 
-                onAddToCart={addToCart}
+                siteConfig={siteConfig}
+                onAddToCart={addToCart} 
                 onWishlist={toggleWishlist}
                 isWishlisted={wishlist.includes(selectedProductId)}
                 setView={navigateTo}
@@ -411,6 +419,7 @@ function AppContent() {
                 onEditItem={(item) => openProduct(item.id, item)}
                 onToggleSelection={toggleCartSelection}
                 onMoveToWishlist={moveToWishlist}
+                siteConfig={siteConfig}
               />
             )}
             {currentView === 'payment' && checkoutData && (
@@ -423,7 +432,7 @@ function AppContent() {
                 setView={navigateTo}
               />
             )}
-            {currentView === 'track' && <TrackOrder />}
+            {currentView === 'track' && <TrackOrder siteConfig={siteConfig} />}
             {currentView === 'wishlist' && (
               <Wishlist 
                 products={products} 
@@ -432,9 +441,10 @@ function AppContent() {
                 onWishlist={toggleWishlist} 
                 onAddToCart={addToCart}
                 onMoveToCart={moveFromWishlistToCart}
+                siteConfig={siteConfig}
               />
             )}
-            {currentView === 'help' && <Help />}
+            {currentView === 'help' && <Help siteConfig={siteConfig} />}
             {currentView === 'admin' && <AdminPortal setView={navigateTo} />}
             {currentView === 'orders' && (
               <Orders 
@@ -442,6 +452,7 @@ function AppContent() {
                 onOpenProduct={openProduct} 
                 onAddToCart={addToCart}
                 setView={navigateTo}
+                siteConfig={siteConfig}
               />
             )}
           </motion.div>

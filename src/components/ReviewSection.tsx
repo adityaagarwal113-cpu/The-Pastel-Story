@@ -76,39 +76,39 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
     : null;
 
   return (
-    <div className="mt-16 pt-16 border-t border-gold/10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-        <div>
-          <h2 className="font-serif text-3xl text-dark mb-2">Customer Reviews</h2>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  className={`w-4 h-4 ${avgRating && parseFloat(avgRating) >= s ? 'fill-gold text-gold' : 'text-gold/20'}`}
-                />
-              ))}
-            </div>
-            <p className="text-sm text-mid">
-              {avgRating ? `${avgRating} out of 5` : 'No reviews yet'}
-              <span className="mx-2 opacity-30">|</span>
-              {reviews.length} {reviews.length === 1 ? 'Review' : 'Reviews'}
-            </p>
+    <div className="mt-32 space-y-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
+        <div className="space-y-6">
+          <span className="text-micro text-gold block">Community Anthology</span>
+          <div className="flex items-center gap-6">
+             <span className="font-serif text-7xl text-dark leading-none">{avgRating || '—'}</span>
+             <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className={`w-3 h-3 ${avgRating && parseFloat(avgRating) >= s ? 'fill-gold text-gold' : 'text-gold/20'}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-micro text-mid/40">
+                  based on {reviews.length} {reviews.length === 1 ? 'experience' : 'experiences'}
+                </p>
+             </div>
           </div>
         </div>
 
         <button
           onClick={() => {
             if (!user) {
-              // Usually we'd open the auth modal, but here we just alert or rely on UI
-              alert("Please sign in to leave a review.");
+              alert("Please sign in to share your story.");
               return;
             }
             setShowForm(!showForm);
           }}
-          className="px-8 py-3 bg-white border border-gold/20 text-gold rounded-full text-[0.65rem] uppercase tracking-widest font-bold hover:bg-gold hover:text-white transition-all shadow-sm"
+          className="text-micro border-b border-gold/20 hover:border-gold text-gold pb-1 transition-all italic lowercase"
         >
-          {showForm ? 'Cancel Review' : 'Write a Review'}
+          {showForm ? 'close form' : 'share your story'}
         </button>
       </div>
 
@@ -118,15 +118,15 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden mb-12"
+            className="overflow-hidden"
           >
             <form 
               onSubmit={handleSubmit}
-              className="bg-cream/20 border border-gold/10 rounded-2xl p-8"
+              className="bg-white border border-gold/10 p-10 luxury-shadow space-y-10"
             >
-              <div className="mb-6 text-center">
-                <p className="text-[0.65rem] uppercase tracking-widest font-bold text-mid mb-3">Rate your experience</p>
-                <div className="flex justify-center gap-2">
+              <div className="text-center space-y-4">
+                <p className="text-micro text-gold italic">Your experience in stars</p>
+                <div className="flex justify-center gap-4">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <button
                       key={s}
@@ -134,11 +134,11 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
                       onMouseEnter={() => setHoverRating(s)}
                       onMouseLeave={() => setHoverRating(0)}
                       onClick={() => setRating(s)}
-                      className="p-1 transition-transform hover:scale-125"
+                      className="transition-transform hover:scale-110"
                     >
                       <Star
-                        className={`w-8 h-8 transition-colors ${
-                          (hoverRating || rating) >= s ? 'fill-gold text-gold' : 'text-gold/20'
+                        className={`w-8 h-8 transition-colors duration-500 ${
+                          (hoverRating || rating) >= s ? 'fill-gold text-gold' : 'text-gold/5'
                         }`}
                       />
                     </button>
@@ -146,41 +146,32 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-[0.65rem] uppercase tracking-widest font-bold text-mid mb-2">Detailed Feedback</label>
+              <div className="space-y-3">
+                <label className="text-micro text-gold italic">Your Narrative</label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Tell us what you liked about this product..."
-                  className="w-full p-4 bg-white border border-gold/10 rounded-xl outline-none focus:border-gold/30 transition-all font-serif italic text-sm min-h-[120px] resize-none"
+                  placeholder="The fabric felt like..."
+                  className="w-full p-0 bg-transparent border-b border-gold/10 focus:border-gold outline-none transition-all font-serif italic text-base min-h-[100px] resize-none"
                   required
                 />
               </div>
 
-              {error && <p className="text-red-500 text-xs mb-4 text-center">{error}</p>}
+              {error && <p className="text-red-500 text-micro text-center">{error}</p>}
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4 bg-dark text-white rounded-xl font-bold text-xs tracking-widest uppercase hover:bg-gold transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    'Submitting...'
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" /> Share My Review
-                    </>
-                  )}
-                </button>
-                <p className="text-[0.6rem] text-mid/60 text-center mt-4 italic">
-                  * Thank you for your feedback! Your review will be visible immediately.
-                </p>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-6 bg-dark text-white font-bold text-micro tracking-[0.4em] uppercase hover:bg-gold hover:luxury-shadow transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? 'Preserving...' : 'Preserve my Story'}
+              </button>
             </form>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
         {reviews.length > 0 ? (
           reviews.map((review) => (
             <motion.div
@@ -188,48 +179,46 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               key={review.id}
-              className="group"
+              className="space-y-6 pb-12 border-b border-gold/5"
             >
-              <div className="flex gap-4 items-start">
-                {review.userPhoto ? (
-                  <img src={review.userPhoto} className="w-12 h-12 rounded-full border border-gold/10" alt={review.userName} />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-cream flex items-center justify-center border border-gold/10">
-                    <User className="w-6 h-6 text-gold/40" />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-bold text-dark text-sm">{review.userName}</h4>
-                      <p className="text-[0.65rem] text-mid uppercase tracking-widest">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                   <div className="w-10 h-10 rounded-full bg-[#eeebe7] overflow-hidden border border-gold/5 shrink-0">
+                      {review.userPhoto ? (
+                        <img src={review.userPhoto} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-mid/20 italic font-serif">
+                          {review.userName.charAt(0)}
+                        </div>
+                      )}
+                   </div>
+                   <div>
+                      <h4 className="font-serif italic text-lg text-dark">{review.userName}</h4>
+                      <p className="text-[0.6rem] text-mid/30 uppercase tracking-widest">
                         {review.timestamp?.toDate().toLocaleDateString('en-IN', {
-                           day: 'numeric',
-                           month: 'long',
+                           month: 'short',
                            year: 'numeric'
                         })}
                       </p>
-                    </div>
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          className={`w-3 h-3 ${review.rating >= s ? 'fill-gold text-gold' : 'text-gold/20'}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-mid text-sm leading-relaxed font-serif italic">
-                    "{review.comment}"
-                  </p>
+                   </div>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className={`w-2.5 h-2.5 ${review.rating >= s ? 'fill-gold text-gold' : 'text-gold/10'}`}
+                    />
+                  ))}
                 </div>
               </div>
+              <p className="text-mid text-sm leading-relaxed font-light italic opacity-70">
+                "{review.comment}"
+              </p>
             </motion.div>
           ))
         ) : (
-          <div className="text-center py-12 bg-cream/5 rounded-3xl border border-dashed border-gold/10">
-            <MessageSquare className="w-12 h-12 text-gold/20 mx-auto mb-4" />
-            <p className="text-mid font-serif italic">Be the first to share your experience with this collection.</p>
+          <div className="col-span-2 py-24 text-center border border-dashed border-gold/10 rounded-sm">
+            <p className="text-mid/40 font-serif italic text-lg">No shared narratives yet. Be the first.</p>
           </div>
         )}
       </div>

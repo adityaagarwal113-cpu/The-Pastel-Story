@@ -3,78 +3,85 @@ import { View } from '../types';
 
 interface FooterProps {
   setView?: (view: View) => void;
+  siteConfig: any;
 }
 
-export function Footer({ setView }: FooterProps) {
+export function Footer({ setView, siteConfig }: FooterProps) {
   return (
-    <footer className="bg-dark text-cream pt-20 pb-10 relative mt-20">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-30" />
-      
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
-          <div className="space-y-4">
-            <h2 className="font-serif text-3xl tracking-widest">
-              The Pastel <span className="text-gold italic">Story</span>
+    <footer className="bg-dark text-white pt-32 pb-16 relative mt-40">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-24 border-b border-white/5">
+          <div className="lg:col-span-4 space-y-10">
+            <h2 className="font-serif text-4xl tracking-tight italic">
+              The Pastel <span className="text-gold not-italic">Story</span>
             </h2>
-            <p className="font-serif italic text-light text-sm opacity-60">
-              Wear your softest chapter. Handpicked silhouettes for the modern woman.
+            <p className="text-sm text-white/40 leading-relaxed font-light max-w-sm">
+              We curate chapters of softness for the modern woman. Each silhouette is a handpicked narrative of elegance and comfort, crafted for moments that matter.
             </p>
-          </div>
-
-          <div className="space-y-6">
-            <h3 className="text-[0.6rem] uppercase tracking-[0.3em] text-gold font-semibold">Get in Touch</h3>
-            <div className="space-y-4">
-              <a href="https://wa.me/918444929090" target="_blank" className="flex items-center gap-4 group">
-                <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center group-hover:bg-gold/20 transition-colors">
-                  <Smartphone className="w-4 h-4 text-gold" />
-                </div>
-                <div>
-                  <p className="text-[0.55rem] uppercase tracking-widest text-light">WhatsApp</p>
-                  <p className="text-sm font-light text-cream">+91 84449 29090</p>
-                </div>
+            <div className="flex gap-6">
+              <a href={siteConfig.instagramUrl || "https://www.instagram.com/pastelstory_by_shiwani"} target="_blank" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-gold hover:border-gold transition-all group">
+                <Instagram className="w-4 h-4 text-white/40 group-hover:text-white" />
               </a>
-              <a href="https://www.instagram.com/pastelstory_by_shiwani" target="_blank" className="flex items-center gap-4 group">
-                <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center group-hover:bg-gold/20 transition-colors">
-                  <Instagram className="w-4 h-4 text-gold" />
-                </div>
-                <div>
-                  <p className="text-[0.55rem] uppercase tracking-widest text-light">Instagram</p>
-                  <p className="text-sm font-light text-cream">@pastelstory_by_shiwani</p>
-                </div>
+              <a href={`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`} target="_blank" className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-gold hover:border-gold transition-all group">
+                <Smartphone className="w-4 h-4 text-white/40 group-hover:text-white" />
+              </a>
+              <a href={`mailto:${siteConfig.contactEmail || 'contact@pastelstory.com'}`} className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-gold hover:border-gold transition-all group">
+                <Mail className="w-4 h-4 text-white/40 group-hover:text-white" />
               </a>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <h3 className="text-[0.6rem] uppercase tracking-[0.3em] text-gold font-semibold">Quick Links</h3>
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => setView?.('shop')}
-                className="text-sm font-light text-light hover:text-gold transition-colors flex items-center gap-2 group w-fit"
-              >
-                Shop Collection <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-              </button>
-              <button 
-                onClick={() => setView?.('cart')}
-                className="text-sm font-light text-light hover:text-gold transition-colors flex items-center gap-2 group w-fit"
-              >
-                Track Order <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-              </button>
-              <a 
-                href="https://wa.me/918444929090" 
-                target="_blank"
-                className="text-sm font-light text-light hover:text-gold transition-colors flex items-center gap-2 group w-fit"
-              >
-                Order via WhatsApp <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-              </a>
+          <div className="lg:col-span-8 grid grid-cols-2 lg:grid-cols-3 gap-12">
+            <div className="space-y-8">
+              <h3 className="text-micro text-gold uppercase tracking-[0.3em]">Selection</h3>
+              <div className="flex flex-col gap-4">
+                {['Archives', 'Silhouettes', 'Pre-Order', 'Care Guide'].map(link => (
+                  <button key={link} onClick={() => setView?.('shop')} className="text-sm text-white/40 hover:text-gold transition-colors w-fit lowercase italic">
+                    {link}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              <h3 className="text-micro text-gold uppercase tracking-[0.3em]">Curated Help</h3>
+              <div className="flex flex-col gap-4">
+                {['Track Story', 'Shipping Archive', 'Exchange Ritual', 'Privacy'].map(link => (
+                  <button key={link} onClick={() => setView?.('cart')} className="text-sm text-white/40 hover:text-gold transition-colors w-fit lowercase italic">
+                    {link}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="col-span-2 lg:col-span-1 space-y-8">
+              <h3 className="text-micro text-gold uppercase tracking-[0.3em]">Join the Narrative</h3>
+              <div className="relative group">
+                <input 
+                  type="email" 
+                  placeholder="The Registry" 
+                  className="w-full bg-transparent border-b border-white/10 py-4 text-sm focus:border-gold outline-none transition-all italic font-serif"
+                />
+                <button className="absolute right-0 bottom-4 text-gold hover:translate-x-2 transition-transform">
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[0.6rem] text-white/20 uppercase tracking-widest leading-relaxed">
+                Subscribe to receive early access to our limited drops and secret archives.
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="pt-10 border-t border-gold/10 text-center">
-          <p className="text-[0.6rem] uppercase tracking-[0.2em] text-light/30">
-            © 2025 The Pastel Story by Shiwani. Crafted with 🌸
+        <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-micro text-white/10 uppercase tracking-[0.2em]">
+            © 2025 The Pastel Story by Shiwani. All rights preserved.
           </p>
+          <div className="flex gap-8 text-micro text-white/10 uppercase tracking-[0.2em]">
+            <span>Fair Trade</span>
+            <span>Sustainable Path</span>
+            <span>Artisanal Quality</span>
+          </div>
         </div>
       </div>
     </footer>

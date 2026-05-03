@@ -50,7 +50,8 @@ export function Navigation({
 
   const navItems = [
     { label: 'Home', view: 'home' as View, icon: <LayoutGrid className="w-4 h-4" /> },
-    { label: 'Shop', view: 'shop' as View, icon: <ShoppingBag className="w-4 h-4" /> },
+    { label: 'Selection', view: 'shop' as View, icon: <ShoppingBag className="w-4 h-4" /> },
+    { label: 'Vision', view: 'about' as View, icon: <User className="w-4 h-4" /> },
     { label: 'Cart', view: 'cart' as View, icon: <ShoppingBag className="w-4 h-4" /> },
     { label: 'Wishlist', view: 'wishlist' as View, icon: <Heart className="w-4 h-4" /> },
     { label: 'Orders', view: 'orders' as View, icon: <Package className="w-4 h-4" />, auth: true },
@@ -73,12 +74,12 @@ export function Navigation({
   const categories = siteConfig?.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-[1000] bg-[#fdf6ee]/90 backdrop-blur-xl border-b border-gold/10">
+    <nav className="fixed top-0 inset-x-0 z-[1000] glass border-b border-gold/10">
       
       {/* ===== DESKTOP / TABLET (UNCHANGED) ===== */}
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-10 h-20 flex items-center justify-between">
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {hasHistory && currentView !== 'home' && (
             <button 
               onClick={goBack}
@@ -90,24 +91,25 @@ export function Navigation({
 
           <button
             onClick={() => handleNav('home')}
-            className="font-serif text-xl sm:text-2xl tracking-widest text-dark"
+            className="font-serif text-2xl tracking-[0.1em] text-dark group transition-all"
           >
-            The Pastel <span className="text-gold italic">Story</span>
+            THE PASTEL <span className="text-gold italic font-light group-hover:opacity-70 transition-opacity">STORY</span>
           </button>
         </div>
 
-        <ul className="hidden md:flex items-center gap-8">
+        <ul className="hidden md:flex items-center gap-4 lg:gap-8">
           {navItems.filter(i => i.label !== 'Cart' && (!i.auth || (i.auth && user))).map((item) => (
             <li key={item.label}>
               <button
                 onClick={() => handleNav(item.view)}
-                className={`text-[0.7rem] uppercase tracking-[0.2em] font-medium transition-colors hover:text-gold flex items-center gap-1 ${
-                  currentView === item.view ? 'text-gold' : 'text-mid'
+                className={`text-[0.6rem] lg:text-[0.65rem] uppercase tracking-[0.2em] lg:tracking-[0.4em] font-bold transition-all hover:text-gold relative group py-2 flex items-center gap-1.5 ${
+                  currentView === item.view ? 'text-gold' : 'text-mid/60'
                 }`}
               >
                 {item.label}
+                <div className={`absolute bottom-0 left-0 w-full h-[1px] bg-gold scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left ${currentView === item.view ? 'scale-x-100' : ''}`} />
                 {item.label === 'Wishlist' && wishCount > 0 && (
-                  <span className="bg-[#e29578] text-white text-[0.55rem] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  <span className="bg-gold text-white text-[0.5rem] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
                     {wishCount}
                   </span>
                 )}
@@ -116,30 +118,52 @@ export function Navigation({
           ))}
         </ul>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-4 mr-2">
+        <div className="flex items-center gap-2 lg:gap-4">
+          <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col items-end">
-                  <span className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">Welcome</span>
-                  <span className="text-[0.65rem] text-dark font-medium">
-                    {user.displayName?.split(' ')[0]}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsLogoutConfirmOpen(true)}
-                  className="p-2 text-mid hover:text-gold transition-colors"
-                  title="Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
+               <div className="relative group">
+                  <button 
+                    onClick={() => handleNav('orders')}
+                    className="flex items-center gap-2 p-1.5 hover:bg-gold/5 rounded-full transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-cream border border-gold/10 flex items-center justify-center overflow-hidden">
+                       {user.photoURL ? (
+                         <img src={user.photoURL} className="w-full h-full object-cover" alt="" />
+                       ) : (
+                         <User className="w-4 h-4 text-gold/40" />
+                       )}
+                    </div>
+                  </button>
+                  {/* Small Dropdown on hover */}
+                  <div className="absolute top-full right-0 pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300">
+                    <div className="bg-white luxury-shadow border border-gold/10 p-4 rounded-xl min-w-[180px]">
+                       <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold mb-3 border-b border-gold/5 pb-2">Account</p>
+                       <div className="space-y-1">
+                          <button onClick={() => handleNav('orders')} className="w-full text-left p-2 text-xs text-dark hover:bg-gold/5 rounded-lg transition-all flex items-center gap-3">
+                             <Package className="w-3.5 h-3.5 text-gold/40" /> My Orders
+                          </button>
+                          <button onClick={() => handleNav('wishlist')} className="w-full text-left p-2 text-xs text-dark hover:bg-gold/5 rounded-lg transition-all flex items-center gap-3">
+                             <Heart className="w-3.5 h-3.5 text-gold/40" /> Wishlist
+                          </button>
+                          {isAdmin && (
+                            <button onClick={() => handleNav('admin')} className="w-full text-left p-2 text-xs text-dark hover:bg-gold/5 rounded-lg transition-all flex items-center gap-3">
+                               <Settings className="w-3.5 h-3.5 text-gold/40" /> Admin Portal
+                            </button>
+                          )}
+                          <button onClick={() => setIsLogoutConfirmOpen(true)} className="w-full text-left p-2 text-xs text-red-500 hover:bg-red-50 rounded-lg transition-all flex items-center gap-3 mt-2 border-t border-gold/5 pt-3">
+                             <LogOut className="w-3.5 h-3.5" /> Sign Out
+                          </button>
+                       </div>
+                    </div>
+                  </div>
+               </div>
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="text-mid hover:text-gold transition-colors text-[0.7rem] uppercase tracking-widest font-bold"
+                className="flex items-center gap-2 p-2 px-4 border border-gold/20 rounded-full text-mid hover:bg-gold hover:text-white transition-all text-[0.65rem] uppercase tracking-widest font-bold"
               >
-                Sign In
+                <User className="w-4 h-4" />
+                <span>Join Us</span>
               </button>
             )}
           </div>

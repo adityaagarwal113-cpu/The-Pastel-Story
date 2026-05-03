@@ -55,7 +55,7 @@ service cloud.firestore {
 
     // --- Products ---
     match /products/{productId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin() && isValidProduct(incoming());
 
       function isValidProduct(data) {
@@ -81,9 +81,11 @@ service cloud.firestore {
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidOrder(incoming());
       allow update: if isAdmin() && (
-        // Action: Update Status
-        incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-        incoming().status in ['Payment Pending Verification', 'Order Placed', 'Processing', 'Shipped', 'Delivered']
+        // Action: Update Status or Tracking
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'trackingId', 'trackingLink']) &&
+        incoming().status in ['Payment Pending Verification', 'Order Placed', 'Processing', 'Shipped', 'Delivered'] &&
+        (!('trackingId' in incoming()) || (incoming().trackingId is string && incoming().trackingId.size() <= 100)) &&
+        (!('trackingLink' in incoming()) || (incoming().trackingLink is string && incoming().trackingLink.size() <= 500))
       );
 
       function isValidOrder(data) {
@@ -98,21 +100,30 @@ service cloud.firestore {
                data.address is string && data.address.size() <= 500 &&
                data.pincode is string && data.pincode.size() <= 10 &&
                data.items is string && data.items.size() <= 5000 &&
-               (!('paymentProof' in data) || (data.paymentProof is string && data.paymentProof.size() <= 200));
+               (!('paymentProof' in data) || (data.paymentProof is string && data.paymentProof.size() <= 200)) &&
+               (!('trackingId' in data) || (data.trackingId is string && data.trackingId.size() <= 100)) &&
+               (!('trackingLink' in data) || (data.trackingLink is string && data.trackingLink.size() <= 500));
       }
     }
 
     // --- Site Config ---
     match /site_config/{configId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin() && isValidConfig(incoming());
 
       function isValidConfig(data) {
         return (!('heroTitle' in data) || (data.heroTitle is string && data.heroTitle.size() <= 200)) &&
                (!('heroSubtitle' in data) || (data.heroSubtitle is string && data.heroSubtitle.size() <= 500)) &&
                (!('heroImage' in data) || (data.heroImage is string && data.heroImage.size() <= 1000000)) &&
+               (!('heroButtonText' in data) || (data.heroButtonText is string && data.heroButtonText.size() <= 100)) &&
                (!('marqueeText' in data) || (data.marqueeText is string && data.marqueeText.size() <= 1000)) &&
-               (!('galleryImages' in data) || (data.galleryImages is list && data.galleryImages.size() <= 50));
+               (!('galleryImages' in data) || (data.galleryImages is list && data.galleryImages.size() <= 50)) &&
+               (!('aboutTitle' in data) || (data.aboutTitle is string && data.aboutTitle.size() <= 500)) &&
+               (!('aboutVision' in data) || (data.aboutVision is string && data.aboutVision.size() <= 2000)) &&
+               (!('aboutSecondary' in data) || (data.aboutSecondary is string && data.aboutSecondary.size() <= 2000)) &&
+               (!('aboutImage' in data) || (data.aboutImage is string && data.aboutImage.size() <= 1000000)) &&
+               (!('contactWhatsApp' in data) || (data.contactWhatsApp is string && data.contactWhatsApp.size() <= 50)) &&
+               (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 100));
       }
     }
 

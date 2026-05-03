@@ -29,9 +29,10 @@ interface OrdersProps {
   onOpenProduct: (id: number) => void;
   onAddToCart: (id: number, size?: string, customization?: string) => void;
   setView: (view: View) => void;
+  siteConfig: any;
 }
 
-export function Orders({ products, onOpenProduct, onAddToCart, setView }: OrdersProps) {
+export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConfig }: OrdersProps) {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -483,7 +484,7 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView }: Orders
         )}
       </AnimatePresence>
 
-      <Footer setView={setView} />
+      <Footer setView={setView} siteConfig={siteConfig} />
     </div>
   );
 }

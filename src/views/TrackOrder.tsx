@@ -5,7 +5,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Footer } from '../components/Footer';
 
-export function TrackOrder() {
+export function TrackOrder({ siteConfig }: { siteConfig: any }) {
   const [orderInput, setOrderInput] = useState('');
   const [status, setStatus] = useState<'none' | 'loading' | 'found' | 'error'>('none');
   const [orderData, setOrderData] = useState<any>(null);
@@ -134,7 +134,7 @@ export function TrackOrder() {
         </AnimatePresence>
       </div>
 
-      <Footer />
+      <Footer siteConfig={siteConfig} />
     </div>
   );
 }

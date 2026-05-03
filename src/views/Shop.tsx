@@ -79,85 +79,97 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
   };
 
   return (
-    <div className="bg-white min-h-screen">
-      {/* Header */}
-      <header className="pt-20 pb-12 px-4 text-center bg-gradient-to-b from-blush/10 to-transparent">
-        <h1 className="font-serif text-5xl text-dark mb-4 tracking-tight">The Collection</h1>
-        <p className="text-light text-sm tracking-widest max-w-sm mx-auto uppercase">Discover our curated silhouettes in signature pastels</p>
+    <div className="bg-[#faf8f6] min-h-screen">
+      {/* Editorial Header */}
+      <header className="pt-32 pb-16 px-6 text-center">
+        <span className="text-micro text-gold mb-4 block">The Collection</span>
+        <h1 className="font-serif text-5xl sm:text-7xl text-dark mb-4 tracking-tight italic">
+          Boutique <span className="text-gold-d not-italic font-medium">Curations</span>
+        </h1>
+        <div className="h-px w-24 bg-gold/20 mx-auto my-8" />
+        <p className="text-mid text-sm tracking-widest max-w-sm mx-auto uppercase opacity-60">Discover our signature pastel silhouettes</p>
       </header>
 
-      {/* Controls Bar */}
-      <div className="sticky top-16 z-30 bg-white/80 backdrop-blur-md border-y border-gold/5 py-4 px-4 overflow-x-auto scroller-hidden">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 min-w-max md:min-w-0">
-          <div className="flex items-center gap-4">
+      {/* Modern Controls Bar */}
+      <div className="sticky top-20 z-30 bg-white/60 backdrop-blur-xl border-y border-gold/10 py-6 px-6">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-8 w-full md:w-auto">
             <button 
               onClick={() => setIsFilterOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cream rounded border border-gold/10 text-[0.7rem] uppercase tracking-widest font-semibold text-dark hover:bg-gold hover:text-white transition-all shadow-sm"
+              className="flex items-center gap-3 text-micro text-dark hover:text-gold transition-colors"
             >
-              <SlidersHorizontal className="w-4 h-4" /> Filters {filteredProducts.length !== products.length && `(${products.length - filteredProducts.length} filtered)`}
+              <SlidersHorizontal className="w-4 h-4" /> 
+              <span>Filters {filteredProducts.length !== products.length && `(${products.length - filteredProducts.length})`}</span>
             </button>
-            <div className="relative group min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-light group-focus-within:text-gold transition-colors" />
+            
+            <div className="flex-1 md:w-64 relative group border-l border-gold/10 pl-8">
+              <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-light/40 group-focus-within:text-gold transition-colors" />
               <input 
                 type="text" 
-                placeholder="Search styles..."
-                className="w-full pl-10 pr-4 py-2 bg-cream rounded border border-transparent focus:border-gold/30 outline-none text-xs transition-all"
+                placeholder="Search Archive..."
+                className="w-full pl-6 pr-4 py-1 bg-transparent outline-none text-xs tracking-widest uppercase placeholder:text-light/30 transition-all font-medium"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-[0.65rem] text-light uppercase tracking-widest hidden sm:inline">Sort by:</span>
+          <div className="flex items-center gap-6 text-micro">
+            <span className="text-light/50 hidden sm:inline">Order by</span>
             <select 
               value={sort}
               onChange={(e) => setSort(e.target.value as any)}
-              className="bg-transparent text-[0.7rem] uppercase tracking-widest font-semibold text-dark outline-none cursor-pointer hover:text-gold border-none pr-6 py-1"
+              className="bg-transparent outline-none cursor-pointer hover:text-gold border-none pr-4 font-bold"
             >
-              <option value="relevance">Relevance</option>
-              <option value="low">Price: Low to High</option>
-              <option value="high">Price: High to Low</option>
-              <option value="new">Newest First</option>
+              <option value="relevance">Default</option>
+              <option value="low">Price: Low</option>
+              <option value="high">Price: High</option>
+              <option value="new">Newest</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-12">
-           {/* Desktop Sidebar Filters */}
-           <aside className="hidden md:block space-y-10 sticky top-40 h-fit">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-20">
+           {/* Boutique Sidebar */}
+           <aside className="hidden lg:block space-y-16 sticky top-48 h-fit">
              <section>
-                <h3 className="text-[0.65rem] uppercase tracking-[0.3em] text-gold font-bold mb-6 border-b border-gold/10 pb-2">Categories</h3>
-                <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-10">
+                  <span className="text-micro text-gold">Archives</span>
+                  <div className="h-px flex-1 bg-gold/10" />
+                </div>
+                <div className="space-y-6">
                   <button 
                     onClick={() => setSelectedCategory('all')}
-                    className={`block w-full text-left text-sm transition-colors ${selectedCategory === 'all' ? 'text-dark font-semibold' : 'text-light hover:text-gold'}`}
+                    className={`block w-full text-left text-xs uppercase tracking-[0.2em] transition-all hover:pl-2 ${selectedCategory === 'all' ? 'text-dark font-bold' : 'text-mid/50 hover:text-gold'}`}
                   >
-                    All Collection <span className="text-[0.6rem] float-right opacity-30">({products.length})</span>
+                    All Collection <span className="text-[0.6rem] ml-2 opacity-30">({products.length})</span>
                   </button>
                   {categories.map((cat: string) => (
                     <button 
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`block w-full text-left text-sm transition-colors uppercase tracking-widest ${selectedCategory === cat ? 'text-dark font-semibold font-serif italic text-base' : 'text-light hover:text-gold'}`}
+                      className={`block w-full text-left text-xs uppercase tracking-[0.2em] transition-all hover:pl-2 ${selectedCategory === cat ? 'text-gold font-bold italic translate-x-2' : 'text-mid/50 hover:text-gold'}`}
                     >
-                      {cat} <span className="text-[0.6rem] float-right opacity-30">({products.filter(p => p.category === cat).length})</span>
+                      {cat} <span className="text-[0.6rem] ml-2 opacity-30">({products.filter(p => p.category === cat).length})</span>
                     </button>
                   ))}
                 </div>
              </section>
 
              <section>
-                <h3 className="text-[0.65rem] uppercase tracking-[0.3em] text-gold font-bold mb-6 border-b border-gold/10 pb-2">Size</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-4 mb-10">
+                  <span className="text-micro text-gold">Sizing</span>
+                  <div className="h-px flex-1 bg-gold/10" />
+                </div>
+                <div className="flex flex-wrap gap-3">
                   {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => (
                     <button
                       key={size}
                       onClick={() => toggleSize(size)}
-                      className={`w-10 h-10 border rounded flex items-center justify-center text-xs tracking-tighter transition-all ${
-                        selectedSizes.has(size) ? 'bg-dark text-white border-dark' : 'border-gold/20 text-mid hover:border-gold'
+                      className={`w-12 h-12 border transition-all duration-500 rounded-sm flex items-center justify-center text-[0.65rem] font-bold ${
+                        selectedSizes.has(size) ? 'bg-dark text-white border-dark' : 'border-gold/10 text-mid/40 hover:border-gold'
                       }`}
                     >
                       {size}
@@ -167,11 +179,14 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
              </section>
 
              <section>
-                <h3 className="text-[0.65rem] uppercase tracking-[0.3em] text-gold font-bold mb-6 border-b border-gold/10 pb-2">Price Range</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-[0.7rem] font-bold text-dark">
-                    <span>₹{priceRange[0]}</span>
-                    <span>₹{priceRange[1]}</span>
+                <div className="flex items-center gap-4 mb-10">
+                  <span className="text-micro text-gold">Price Cap</span>
+                  <div className="h-px flex-1 bg-gold/10" />
+                </div>
+                <div className="space-y-6">
+                  <div className="flex justify-between text-micro text-dark">
+                    <span>₹0</span>
+                    <span className="text-gold">₹{priceRange[1]}</span>
                   </div>
                   <input 
                     type="range" 
@@ -180,29 +195,29 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
                     step="100"
                     value={priceRange[1]}
                     onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="w-full accent-gold bg-gold/10 rounded-lg cursor-pointer appearance-none h-1"
+                    className="w-full accent-gold bg-gold/10 rounded-full cursor-pointer appearance-none h-1"
                   />
                 </div>
              </section>
 
              <button 
               onClick={clearFilters}
-              className="text-[0.6rem] uppercase tracking-widest text-gold hover:underline font-bold"
+              className="text-micro text-red-400 group flex items-center gap-3 hover:opacity-70 transition-opacity"
              >
-                Reset All Filters
+                <X className="w-3 h-3" /> Reset Criteria
              </button>
            </aside>
 
-           {/* Results Grid */}
+           {/* Results Grid - High Density */}
            <div>
-             <div className="mb-6 flex items-center justify-between">
-                <span className="text-light text-[0.7rem] uppercase tracking-[0.2em]">
-                  Showing <strong>{filteredProducts.length}</strong> styles
+             <div className="mb-12 flex items-center justify-between border-b border-gold/5 pb-6">
+                <span className="text-mid/40 text-micro">
+                  Selection / <strong>{filteredProducts.length}</strong> Results
                 </span>
              </div>
 
              {filteredProducts.length > 0 ? (
-               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+               <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-x-8 gap-y-20">
                 {filteredProducts.map((p) => (
                   <ProductCard 
                     key={p.id} 
@@ -215,13 +230,12 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
                 ))}
               </div>
              ) : (
-               <div className="text-center py-32 bg-cream/20 rounded-xl border border-dashed border-gold/20">
-                  <div className="text-4xl mb-4 opacity-30">🔍</div>
-                  <h3 className="font-serif text-2xl text-mid mb-2 italic">Nothing matches your filters</h3>
-                  <p className="text-light text-sm mb-8">Try adjusting your search or resetting categories.</p>
+               <div className="text-center py-40 border border-gold/10 bg-white/40">
+                  <h3 className="font-serif text-3xl text-dark mb-4 italic">The archive is empty.</h3>
+                  <p className="text-mid text-sm mb-10 opacity-60">Try adjusting your criteria to find something beautiful.</p>
                   <button 
                     onClick={clearFilters}
-                    className="bg-dark text-white px-8 py-3 rounded text-xs tracking-widest uppercase hover:bg-gold transition-colors"
+                    className="text-micro bg-dark text-white px-10 py-5 hover:bg-gold transition-all"
                   >
                     Clear All Filters
                   </button>
@@ -331,7 +345,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
         )}
       </AnimatePresence>
 
-      <Footer />
+      <Footer setView={() => {}} siteConfig={siteConfig} />
     </div>
   );
 }
