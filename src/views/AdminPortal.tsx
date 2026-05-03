@@ -7,10 +7,12 @@ import {
   CheckCircle2, Clock, Truck, ShieldAlert, User, Star, Search, Filter
 } from 'lucide-react';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { optimizeImageForUpload } from '../lib/image-optimization';
 
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const { user } = useAuth();
@@ -34,8 +36,31 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProduct, setIsEditingProduct] = useState<Product | null>(null);
   const [isEditingReview, setIsEditingReview] = useState<any | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
+
+  const handleFileUpload = async (file: File): Promise<string> => {
+    setIsUploading(true);
+    try {
+      // 1. Compress Image
+      const { blob } = await optimizeImageForUpload(file);
+      
+      // 2. Upload to Storage
+      const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, blob);
+      
+      // 3. Get Download URL
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Failed to upload image. Please try again.');
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSeedData = async () => {
     try {
@@ -318,9 +343,9 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     <thead className="bg-cream/30 text-[0.6rem] uppercase tracking-widest text-mid font-bold">
                       <tr>
                         <th className="px-8 py-4">ID</th>
-                        <th className="px-8 py-4">Date</th>
-                        <th className="px-8 py-4">Customer</th>
-                        <th className="px-8 py-4">Items</th>
+                        <th className="px-8 py-4">Placement Date</th>
+                        <th className="px-8 py-4">Customer Details</th>
+                        <th className="px-8 py-4">Order Items</th>
                         <th className="px-8 py-4">Total</th>
                         <th className="px-8 py-4">Status</th>
                         <th className="px-8 py-4">Actions</th>
@@ -339,12 +364,20 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       }).map(order => (
                       <tr key={order.id} className="text-xs hover:bg-cream/10 transition-colors">
                         <td className="px-8 py-6 font-mono text-[0.65rem] opacity-50">{order.orderId}</td>
-                        <td className="px-8 py-6">
+                        <td className="px-8 py-6 bg-cream/20">
                           <p className="text-[0.7rem] font-bold text-dark">
-                            {order.timestamp?.toDate ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (order.timestamp instanceof Date ? order.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Pending')}
+                            {order.timestamp?.toDate 
+                              ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                              : (order.timestamp instanceof Date 
+                                ? order.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                                : 'Recent')}
                           </p>
                           <p className="text-[0.6rem] text-mid">
-                            {order.timestamp?.toDate ? order.timestamp.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : (order.timestamp instanceof Date ? order.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '')}
+                            {order.timestamp?.toDate 
+                              ? order.timestamp.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
+                              : (order.timestamp instanceof Date 
+                                ? order.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
+                                : 'Just now')}
                           </p>
                         </td>
                         <td className="px-8 py-6">
@@ -449,7 +482,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           )}
                           <div>
                             <h4 className="text-sm font-bold text-dark">{review.userName}</h4>
-                            <p className="text-[0.6rem] text-mid uppercase tracking-widest">{review.timestamp?.toDate().toLocaleDateString()}</p>
+                            <p className="text-[0.6rem] text-mid uppercase tracking-widest">
+                              {review.timestamp?.toDate 
+                                ? review.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                                : (review.timestamp instanceof Date 
+                                  ? review.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                                  : 'Recently')}
+                            </p>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -578,35 +617,43 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       )}
                       <div 
                         onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
+                        onDrop={async (e) => {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              setSiteConfig({...siteConfig, heroImage: ev.target?.result as string});
-                            };
-                            reader.readAsDataURL(file);
+                            try {
+                              const url = await handleFileUpload(file);
+                              setSiteConfig({...siteConfig, heroImage: url});
+                            } catch (e) {}
                           }
                         }}
-                        className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
+                        className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                       >
                         <input 
                           type="file" 
                           className="absolute inset-0 opacity-0 cursor-pointer" 
-                          onChange={(e) => {
+                          disabled={isUploading}
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                setSiteConfig({...siteConfig, heroImage: ev.target?.result as string});
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                const url = await handleFileUpload(file);
+                                setSiteConfig({...siteConfig, heroImage: url});
+                              } catch (e) {}
                             }
                           }}
                         />
-                        <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
-                        <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Drag or Click to Upload Hero Image</p>
+                        {isUploading ? (
+                          <div className="flex flex-col items-center">
+                            <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Optimizing & Uploading...</p>
+                          </div>
+                        ) : (
+                          <>
+                            <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Drag or Click to Upload Hero Image</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -645,25 +692,32 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           </button>
                         </div>
                       ))}
-                      <label className="aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group">
-                        <Plus className="w-6 h-6 text-gold group-hover:scale-110 transition-transform" />
+                      <label className={`aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {isUploading ? (
+                          <Clock className="w-6 h-6 text-gold animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="w-6 h-6 text-gold group-hover:scale-110 transition-transform" />
+                            <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
+                          </>
+                        )}
                         <input 
                           type="file" 
                           multiple
                           className="hidden" 
-                          onChange={(e) => {
+                          disabled={isUploading}
+                          onChange={async (e) => {
                             if (e.target.files) {
-                              Array.from(e.target.files).forEach((file: File) => {
-                                const reader = new FileReader();
-                                reader.onload = (ev) => {
-                                  const result = ev.target?.result as string;
+                              const files = Array.from(e.target.files) as File[];
+                              for (const file of files) {
+                                try {
+                                  const url = await handleFileUpload(file);
                                   setSiteConfig((prev: any) => ({
                                     ...prev,
-                                    galleryImages: [...(prev.galleryImages || []), result]
+                                    galleryImages: [...(prev.galleryImages || []), url]
                                   }));
-                                };
-                                reader.readAsDataURL(file);
-                              });
+                                } catch (e) {}
+                              }
                             }
                           }}
                         />
@@ -671,25 +725,26 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                     <div 
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
+                      onDrop={async (e) => {
                         e.preventDefault();
-                        Array.from(e.dataTransfer.files).forEach((file: File) => {
+                        const files = Array.from(e.dataTransfer.files) as File[];
+                        for (const file of files) {
                           if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              const result = ev.target?.result as string;
+                            try {
+                              const url = await handleFileUpload(file);
                               setSiteConfig((prev: any) => ({
                                 ...prev,
-                                galleryImages: [...(prev.galleryImages || []), result]
+                                galleryImages: [...(prev.galleryImages || []), url]
                               }));
-                            };
-                            reader.readAsDataURL(file);
+                            } catch (e) {}
                           }
-                        });
+                        }
                       }}
-                      className="p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center"
+                      className={`p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center ${isUploading ? 'opacity-50' : ''}`}
                     >
-                      <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">Drop Gallery Images Here</p>
+                      <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">
+                        {isUploading ? 'Uploading Gallery Images...' : 'Drop Gallery Images Here'}
+                      </p>
                     </div>
                   </div>
 
@@ -961,27 +1016,33 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           </button>
                         </div>
                       ))}
-                      <label className="aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group">
-                        <Plus className="w-6 h-6 text-gold group-hover:scale-110 transition-transform" />
-                        <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
+                      <label className={`aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {isUploading ? (
+                          <Clock className="w-6 h-6 text-gold animate-spin" />
+                        ) : (
+                          <>
+                            <Plus className="w-6 h-6 text-gold group-hover:scale-110 transition-transform" />
+                            <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
+                          </>
+                        )}
                         <input 
                           type="file" 
                           className="hidden" 
                           multiple 
                           accept="image/*"
-                          onChange={(e) => {
+                          disabled={isUploading}
+                          onChange={async (e) => {
                             if (e.target.files) {
-                              Array.from(e.target.files).forEach((file: File) => {
-                                const reader = new FileReader();
-                                reader.onload = (ev) => {
-                                  const result = ev.target?.result as string;
+                              const files = Array.from(e.target.files) as File[];
+                              for (const file of files) {
+                                try {
+                                  const url = await handleFileUpload(file);
                                   setIsEditingProduct(prev => prev ? {
                                     ...prev,
-                                    imgs: [...prev.imgs, result]
+                                    imgs: [...prev.imgs, url]
                                   } : null);
-                                };
-                                reader.readAsDataURL(file);
-                              });
+                              } catch (e) {}
+                              }
                             }
                           }}
                         />
@@ -989,26 +1050,27 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                     <div 
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
+                      onDrop={async (e) => {
                         e.preventDefault();
-                        Array.from(e.dataTransfer.files).forEach((file: File) => {
+                        const files = Array.from(e.dataTransfer.files) as File[];
+                        for (const file of files) {
                           if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              const result = ev.target?.result as string;
+                            try {
+                              const url = await handleFileUpload(file);
                               setIsEditingProduct(prev => prev ? {
                                 ...prev,
-                                imgs: [...prev.imgs, result]
+                                imgs: [...prev.imgs, url]
                               } : null);
-                            };
-                            reader.readAsDataURL(file);
+                            } catch (e) {}
                           }
-                        });
+                        }
                       }}
-                      className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center"
+                      className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center ${isUploading ? 'opacity-50' : ''}`}
                     >
                       <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
-                      <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">Drag & Drop Images Here</p>
+                      <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">
+                        {isUploading ? 'Optimizing Images...' : 'Drag & Drop Images Here'}
+                      </p>
                     </div>
                   </div>
 

@@ -193,11 +193,11 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView }: Orders
                     <div className="space-y-1">
                       <p className="text-[0.6rem] uppercase tracking-[0.3em] font-bold text-gold">Purchase Date</p>
                       <p className="font-serif italic text-dark text-lg">
-                        {new Date(order.timestamp?.toDate() || Date.now()).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
+                        {order.timestamp?.toDate 
+                          ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                          : (order.timestamp instanceof Date 
+                            ? order.timestamp.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                            : 'Recent Order')}
                       </p>
                     </div>
                     
@@ -348,11 +348,11 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView }: Orders
                     <div>
                       <p className="text-[0.5rem] uppercase tracking-widest font-bold opacity-40">Placed On</p>
                       <p className="text-xs font-bold text-dark">
-                        {new Date(selectedOrder.timestamp?.toDate() || Date.now()).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
+                        {selectedOrder.timestamp?.toDate 
+                          ? selectedOrder.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                          : (selectedOrder.timestamp instanceof Date 
+                            ? selectedOrder.timestamp.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                            : 'Just Now')}
                       </p>
                     </div>
                   </div>
