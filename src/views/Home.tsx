@@ -15,7 +15,7 @@ interface HomeProps {
 }
 
 export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWishlist, wishlist }: HomeProps) {
-  const featuredProducts = products.slice(0, 4);
+  const featuredProducts = products.slice(0, 12);
 
   return (
     <div className="overflow-hidden bg-[#faf8f6]">
