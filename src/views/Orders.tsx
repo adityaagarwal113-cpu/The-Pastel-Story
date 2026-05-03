@@ -27,7 +27,7 @@ import { Footer } from '../components/Footer';
 interface OrdersProps {
   products: Product[];
   onOpenProduct: (id: number) => void;
-  onAddToCart: (id: number, size?: string) => void;
+  onAddToCart: (id: number, size?: string, customization?: string) => void;
   setView: (view: View) => void;
 }
 
@@ -388,10 +388,16 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView }: Orders
                             <div className="flex flex-col items-start gap-1 py-1">
                                <span className="px-3 py-1 bg-cream rounded-full text-[0.5rem] font-bold uppercase tracking-widest text-mid">Size: {item.size}</span>
                                <span className="text-[0.55rem] font-bold text-mid opacity-60 ml-1">Quantity: {item.qty}</span>
+                               {item.customization && (
+                                <div className="mt-2 w-full max-w-sm bg-cream/30 p-2.5 rounded-xl border border-gold/5">
+                                  <p className="text-[0.5rem] uppercase tracking-widest font-bold text-gold mb-1">Customization</p>
+                                  <p className="text-[0.65rem] text-dark/70 font-serif italic leading-relaxed">{item.customization}</p>
+                                </div>
+                               )}
                             </div>
                             <div className="pt-4">
                               <button 
-                                onClick={() => onAddToCart(item.id, item.size)}
+                                onClick={() => onAddToCart(item.id, item.size, item.customization)}
                                 className="flex items-center gap-2 px-6 py-3 bg-cream text-dark hover:bg-gold hover:text-white rounded-xl text-[0.55rem] font-bold uppercase tracking-widest transition-all group/btn"
                               >
                                 <RefreshCw className="w-3 h-3 group-hover/btn:rotate-180 transition-transform duration-500" /> 

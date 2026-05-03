@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import { Product, View } from '../types';
@@ -18,7 +18,22 @@ interface ShopProps {
 export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wishlist }: ShopProps) {
   const categories = siteConfig?.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>(() => {
+    return sessionStorage.getItem('pastel_filter_cat') || 'all';
+  });
+  
+  useEffect(() => {
+    const handleCatChange = (e: any) => {
+      setSelectedCategory(e.detail);
+    };
+    window.addEventListener('pastel_category_change', handleCatChange as EventListener);
+    return () => window.removeEventListener('pastel_category_change', handleCatChange as EventListener);
+  }, []);
+  
+  // Clear filter after reading it to avoid persistence on fresh mounts if not intended
+  useEffect(() => {
+    sessionStorage.removeItem('pastel_filter_cat');
+  }, []);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<'relevance' | 'low' | 'high' | 'new'>('relevance');

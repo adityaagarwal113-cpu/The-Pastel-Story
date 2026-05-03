@@ -51,6 +51,22 @@
       },
       "required": ["id", "name", "price", "category", "images"]
     },
+    "Review": {
+      "title": "Review",
+      "description": "Product customer reviews",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "number" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "userId", "userName", "rating", "comment", "status", "timestamp"]
+    },
     "SiteConfig": {
       "title": "Site Configuration",
       "description": "Global website settings and content",
@@ -84,6 +100,10 @@
     "/site_config/{configId}": {
       "schema": "SiteConfig",
       "description": "CMS settings"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Product ratings and reviews"
     }
   }
 }

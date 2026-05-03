@@ -4,9 +4,9 @@ import {
   Plus, Trash2, Edit2, Package, Tag, Layers, 
   Settings, Image as ImageIcon, ChevronRight, 
   Layout, Type, MessageSquare, Save, X,
-  CheckCircle2, Clock, Truck, ShieldAlert
+  CheckCircle2, Clock, Truck, ShieldAlert, User, Star, Search, Filter
 } from 'lucide-react';
-import { collection, query, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
@@ -14,9 +14,12 @@ import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'config'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'config' | 'reviews'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('All');
   const [siteConfig, setSiteConfig] = useState<any>({
     heroTitle: 'The Pastel Story',
     heroSubtitle: 'Effortless Elegance, Timeless Silhouettes',
@@ -30,6 +33,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProduct, setIsEditingProduct] = useState<Product | null>(null);
+  const [isEditingReview, setIsEditingReview] = useState<any | null>(null);
 
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
 
@@ -59,7 +63,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     });
 
     // Real-time orders
-    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('timestamp', 'desc')), (snapshot) => {
       setOrders(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'orders');
@@ -74,10 +78,18 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       setIsLoading(false);
     });
 
+    // Real-time reviews
+    const unsubReviews = onSnapshot(query(collection(db, 'reviews'), orderBy('timestamp', 'desc')), (snapshot) => {
+      setReviews(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'reviews');
+    });
+
     return () => {
       unsubProducts();
       unsubOrders();
       unsubConfig();
+      unsubReviews();
     };
   }, [isAdmin]);
 
@@ -134,6 +146,25 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     }
   };
 
+  const handleUpdateReview = async (reviewId: string, updates: any) => {
+    try {
+      await updateDoc(doc(db, 'reviews', reviewId), updates);
+      setIsEditingReview(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `reviews/${reviewId}`);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (window.confirm('Delete this review permanently?')) {
+      try {
+        await deleteDoc(doc(db, 'reviews', reviewId));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `reviews/${reviewId}`);
+      }
+    }
+  };
+
   return (
     <div className="bg-cream min-h-screen">
       <div className="max-w-7xl mx-auto p-4 sm:p-8">
@@ -146,6 +177,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
             {[
               { id: 'products', icon: Package, label: 'Products' },
               { id: 'orders', icon: Tag, label: 'Orders' },
+              { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
               { id: 'config', icon: Settings, label: 'Site Config' }
             ].map(tab => (
               <button
@@ -188,10 +220,14 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         id: Date.now(), 
                         name: 'New Product', 
                         price: 0, 
+                        oldPrice: null,
+                        badge: '',
                         category: categories[0], 
                         imgs: [], 
-                        sizes: ['S', 'M', 'L'], 
-                        color: 'blush' 
+                        sizes: ['S', 'M', 'L', 'XL'], 
+                        color: 'blush',
+                        oos: false,
+                        desc: ''
                       } as any);
                     }}
                     className="bg-gold text-white px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold shadow-lg shadow-gold/20"
@@ -226,9 +262,17 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="text-[0.6rem] text-gold uppercase tracking-[0.2em] font-bold mb-1">{p.category}</p>
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="text-[0.6rem] text-gold uppercase tracking-[0.2em] font-bold">{p.category}</p>
+                        {p.oos && (
+                          <span className="text-[0.5rem] bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">OOS</span>
+                        )}
+                      </div>
                       <h4 className="font-serif text-lg text-dark mb-2">{p.name}</h4>
-                      <p className="text-dark font-bold">₹{p.price}</p>
+                      <div className="flex justify-between items-center text-dark font-bold">
+                        <span>₹{p.price}</span>
+                        <span className="text-[0.65rem] text-mid font-normal">Sizes: {p.sizes?.join(', ') || 'None'}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -237,34 +281,95 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
           )}
 
           {activeTab === 'orders' && (
-            <div className="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-cream">
-              <div className="p-8 border-b border-cream">
-                <h3 className="text-xl font-serif italic text-dark">Recent Orders ({orders.length})</h3>
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-mid" />
+                  <input 
+                    type="text"
+                    placeholder="Search orders (ID, Name, Phone)..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-gold/10 rounded-2xl outline-none focus:border-gold/30 text-sm shadow-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 bg-white border border-gold/10 px-4 rounded-2xl shadow-sm">
+                  <Filter className="w-4 h-4 text-mid" />
+                  <select 
+                    value={orderStatusFilter}
+                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                    className="bg-transparent py-4 outline-none text-[0.65rem] font-bold uppercase tracking-widest text-mid cursor-pointer min-w-[120px]"
+                  >
+                    <option value="All">All Status</option>
+                    <option value="Order Placed">Placed</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Delivered">Delivered</option>
+                  </select>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-cream/30 text-[0.6rem] uppercase tracking-widest text-mid font-bold">
-                    <tr>
-                      <th className="px-8 py-4">ID</th>
-                      <th className="px-8 py-4">Customer</th>
-                      <th className="px-8 py-4">Items</th>
-                      <th className="px-8 py-4">Total</th>
-                      <th className="px-8 py-4">Status</th>
-                      <th className="px-8 py-4">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-cream">
-                    {orders.map(order => (
+
+              <div className="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-cream">
+                <div className="p-8 border-b border-cream">
+                  <h3 className="text-xl font-serif italic text-dark">Recent Orders ({orders.length})</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-cream/30 text-[0.6rem] uppercase tracking-widest text-mid font-bold">
+                      <tr>
+                        <th className="px-8 py-4">ID</th>
+                        <th className="px-8 py-4">Customer</th>
+                        <th className="px-8 py-4">Items</th>
+                        <th className="px-8 py-4">Total</th>
+                        <th className="px-8 py-4">Status</th>
+                        <th className="px-8 py-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-cream text-dark">
+                      {orders.filter(order => {
+                        const matchesSearch = 
+                          (order.orderId || '').toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          (order.userName || '').toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          (order.userPhone || '').toLowerCase().includes(orderSearch.toLowerCase());
+                        
+                        const matchesStatus = orderStatusFilter === 'All' || order.status === orderStatusFilter;
+                        
+                        return matchesSearch && matchesStatus;
+                      }).map(order => (
                       <tr key={order.id} className="text-xs hover:bg-cream/10 transition-colors">
-                        <td className="px-8 py-6 font-bold text-dark">{order.orderId}</td>
+                        <td className="px-8 py-6 font-mono text-[0.65rem] opacity-50">{order.orderId}</td>
                         <td className="px-8 py-6">
-                          <p className="font-bold text-dark">{order.userName}</p>
-                          <p className="text-[0.65rem] text-mid">{order.userPhone}</p>
+                          <p className="font-bold">{order.userName}</p>
+                          <p className="text-[0.65rem] opacity-60">{order.userPhone}</p>
+                          <p className="text-[0.6rem] opacity-40 mt-1 max-w-[150px] truncate">{order.address}</p>
                         </td>
-                        <td className="px-8 py-6 max-w-xs truncate text-[0.65rem] text-mid italic">
-                          {order.items}
+                        <td className="px-8 py-6 max-w-sm min-w-[240px]">
+                          <div className="space-y-3">
+                            {(() => {
+                              try {
+                                const items = JSON.parse(order.items);
+                                return items.map((item: any, idx: number) => (
+                                  <div key={idx} className="bg-cream/40 p-3 rounded-xl border border-gold/5">
+                                    <div className="flex justify-between items-start gap-2 mb-1 text-[0.7rem]">
+                                      <p className="font-bold flex-1">{item.name}</p>
+                                      <p className="text-[0.65rem] text-gold font-bold bg-white px-1.5 rounded">x{item.qty}</p>
+                                    </div>
+                                    <p className="text-[0.55rem] uppercase font-bold tracking-widest text-mid">Size: {item.size}</p>
+                                    {item.customization && (
+                                      <div className="mt-2 text-[0.7rem] text-dark/70 font-serif italic border-t border-gold/10 pt-2 leading-relaxed bg-white/30 p-2 rounded-lg">
+                                        <p className="text-[0.5rem] uppercase font-bold text-gold mb-1 not-italic tracking-widest">Customization Request:</p>
+                                        {item.customization}
+                                      </div>
+                                    )}
+                                  </div>
+                                ));
+                              } catch (e) {
+                                return <span className="text-[0.65rem] text-mid italic">{order.items}</span>;
+                              }
+                            })()}
+                          </div>
                         </td>
-                        <td className="px-8 py-6 font-bold text-dark">₹{order.total}</td>
+                        <td className="px-8 py-6 font-bold">₹{order.total.toLocaleString('en-IN')}</td>
                         <td className="px-8 py-6">
                           <span className={`px-3 py-1 rounded-full text-[0.6rem] font-bold uppercase tracking-widest ${
                             order.status === 'Order Placed' ? 'bg-blue-50 text-blue-500' :
@@ -291,6 +396,133 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+          {activeTab === 'reviews' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-gold/10">
+                <div>
+                  <h3 className="text-xl font-serif italic text-dark">Customer Reviews</h3>
+                  <p className="text-[0.6rem] text-mid uppercase tracking-widest mt-1">
+                    {reviews.length} total reviews published
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-cream/30 rounded-xl">
+                  <Star className="w-4 h-4 text-gold fill-gold" />
+                  <span className="text-sm font-bold text-dark">
+                    {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : '0.0'} Average
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {reviews.map((review) => {
+                  const product = products.find(p => p.id === review.productId);
+                  const isEditing = isEditingReview?.id === review.id;
+
+                  return (
+                    <motion.div 
+                      layout
+                      key={review.id}
+                      className="bg-white p-6 rounded-3xl border border-gold/5 transition-all hover:shadow-lg hover:shadow-gold/5"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-3 items-center">
+                          {review.userPhoto ? (
+                            <img src={review.userPhoto} className="w-10 h-10 rounded-full" alt="" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-cream flex items-center justify-center">
+                              <User className="w-5 h-5 text-gold/40" />
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-sm font-bold text-dark">{review.userName}</h4>
+                            <p className="text-[0.6rem] text-mid uppercase tracking-widest">{review.timestamp?.toDate().toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex">
+                            {[1,2,3,4,5].map(i => (
+                              <Star key={i} className={`w-3 h-3 ${review.rating >= i ? 'fill-gold text-gold' : 'text-gold/20'}`} />
+                            ))}
+                          </div>
+                          <span className="text-[0.5rem] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest bg-green-50 text-green-500">
+                            Visible
+                          </span>
+                        </div>
+                      </div>
+
+                      {isEditing ? (
+                        <div className="mb-4">
+                          <textarea 
+                            className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none text-sm font-serif italic min-h-[100px]"
+                            value={isEditingReview.comment}
+                            onChange={(e) => setIsEditingReview({...isEditingReview, comment: e.target.value})}
+                          />
+                          <div className="flex justify-end gap-2 mt-2">
+                             <button 
+                               onClick={() => setIsEditingReview(null)}
+                               className="px-4 py-2 text-[0.6rem] uppercase tracking-widest font-bold text-mid"
+                             >
+                               Cancel
+                             </button>
+                             <button 
+                               onClick={() => handleUpdateReview(review.id, { comment: isEditingReview.comment })}
+                               className="px-4 py-2 bg-dark text-white rounded-xl text-[0.6rem] uppercase tracking-widest font-bold"
+                             >
+                               Save Changes
+                             </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4 p-4 bg-cream/10 rounded-2xl italic font-serif text-sm text-mid group relative">
+                          "{review.comment}"
+                          <button 
+                            onClick={() => setIsEditingReview(review)}
+                            className="absolute top-2 right-2 p-1.5 bg-white opacity-0 group-hover:opacity-100 transition-opacity rounded-lg shadow-sm border border-gold/10"
+                          >
+                            <Edit2 className="w-3 h-3 text-gold" />
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center border-t border-gold/5 pt-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-cream flex items-center justify-center overflow-hidden shrink-0">
+                             {product?.imgs[0] && <img src={product.imgs[0]} className="w-full h-full object-cover" alt="" />}
+                          </div>
+                          <span className="text-[0.65rem] font-bold text-dark truncate max-w-[120px]">{product?.name || 'Unknown Product'}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setIsEditingReview(review)}
+                            className="p-2 text-mid/40 hover:text-gold hover:bg-gold/5 rounded-xl transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteReview(review.id)}
+                            className="p-2 text-mid/40 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {reviews.length === 0 && (
+                  <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-gold/5 opacity-50">
+                    <MessageSquare className="w-12 h-12 text-gold/20 mx-auto mb-4" />
+                    <p className="font-serif italic">No customer reviews to show yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -473,39 +705,59 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
                   <div className="space-y-2">
                     <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Manage Categories</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {(siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara']).map((cat: string) => (
-                        <div key={cat} className="flex items-center gap-2 bg-cream px-3 py-2 rounded-lg group">
-                          <span className="text-[0.65rem] uppercase font-bold text-dark">{cat}</span>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {(siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara']).map((cat: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 bg-cream px-3 py-2 rounded-lg group">
+                          <input 
+                            value={cat}
+                            onChange={(e) => {
+                              const newName = e.target.value.toLowerCase().trim();
+                              const newCats = [...(siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'])];
+                              newCats[idx] = newName;
+                              setSiteConfig({...siteConfig, categories: newCats});
+                            }}
+                            className="text-[0.65rem] uppercase font-bold text-dark bg-transparent border-none outline-none focus:ring-1 ring-gold rounded px-1 w-24"
+                          />
                           <button 
                             onClick={() => {
-                              const newCats = siteConfig.categories.filter((c: string) => c !== cat);
+                              const newCats = (siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara']).filter((_: any, i: number) => i !== idx);
                               setSiteConfig({...siteConfig, categories: newCats});
                             }}
                             className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete Category"
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       ))}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 p-4 bg-cream/10 rounded-2xl border border-dashed border-gold/20">
                       <input 
                         id="newCatInput"
                         type="text" 
-                        placeholder="New Category Name"
-                        className="flex-1 bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-xl outline-none transition-all text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const input = e.currentTarget;
+                            if (input.value) {
+                              const currentCats = siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
+                              setSiteConfig({...siteConfig, categories: [...currentCats, input.value.toLowerCase().trim()]});
+                              input.value = '';
+                            }
+                          }
+                        }}
+                        placeholder="Type category & press Enter..."
+                        className="flex-1 bg-transparent border-none outline-none text-xs"
                       />
                       <button 
                         onClick={() => {
                           const input = document.getElementById('newCatInput') as HTMLInputElement;
                           if (input.value) {
                             const currentCats = siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
-                            setSiteConfig({...siteConfig, categories: [...currentCats, input.value.toLowerCase()]});
+                            setSiteConfig({...siteConfig, categories: [...currentCats, input.value.toLowerCase().trim()]});
                             input.value = '';
                           }
                         }}
-                        className="bg-gold text-white px-6 rounded-xl text-[0.65rem] font-bold uppercase"
+                        className="text-gold font-bold text-xs uppercase tracking-widest hover:underline px-2"
                       >
                         Add
                       </button>
@@ -558,7 +810,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Price (₹)</label>
+                      <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Current Price (₹)</label>
                       <input 
                         className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none"
                         value={isEditingProduct.price}
@@ -566,6 +818,18 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         onChange={(e) => setIsEditingProduct({...isEditingProduct, price: Number(e.target.value)})}
                       />
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Original Price (₹) - Optional</label>
+                      <input 
+                        className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none"
+                        value={isEditingProduct.oldPrice || ''}
+                        type="number"
+                        placeholder="Strike-through price"
+                        onChange={(e) => setIsEditingProduct({...isEditingProduct, oldPrice: e.target.value ? Number(e.target.value) : undefined})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Category</label>
                       <select 
@@ -578,14 +842,92 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                          ))}
                       </select>
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Label / Badge (Optional)</label>
+                      <select 
+                        className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none uppercase text-[0.65rem] font-bold"
+                        value={isEditingProduct.badge || ''}
+                        onChange={(e) => setIsEditingProduct({...isEditingProduct, badge: e.target.value})}
+                      >
+                         <option value="">No Label</option>
+                         <option value="New Arrival">New Arrival</option>
+                         <option value="Best Seller">Best Seller</option>
+                         <option value="Sale">Sale</option>
+                         <option value="Limited Edition">Limited Edition</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Custom Label (Optional)</label>
+                    <input 
+                      placeholder="Or enter custom label text..."
+                      className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none text-xs"
+                      value={isEditingProduct.badge || ''}
+                      onChange={(e) => setIsEditingProduct({...isEditingProduct, badge: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Description</label>
                     <textarea 
-                      className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none h-32"
+                      className="w-full p-4 bg-cream/30 rounded-2xl outline-none border-none h-32 text-sm"
                       value={isEditingProduct.desc || ''}
                       onChange={(e) => setIsEditingProduct({...isEditingProduct, desc: e.target.value})}
                     />
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-cream">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gold" />
+                        <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Inventory Status</label>
+                      </div>
+                      <button 
+                        onClick={() => setIsEditingProduct({...isEditingProduct, oos: !isEditingProduct.oos})}
+                        className={`px-4 py-2 rounded-xl text-[0.6rem] font-bold uppercase transition-all flex items-center gap-2 ${
+                            isEditingProduct.oos 
+                            ? 'bg-red-50 text-red-500 border border-red-100' 
+                            : 'bg-green-50 text-green-500 border border-green-100'
+                        }`}
+                      >
+                        {isEditingProduct.oos ? (
+                          <><X className="w-3 h-3" /> Out of Stock</>
+                        ) : (
+                          <><CheckCircle2 className="w-3 h-3" /> In Stock</>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-gold" />
+                        <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Available Sizes</label>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Custom'].map(size => (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => {
+                              const currentSizes = isEditingProduct.sizes || [];
+                              const newSizes = currentSizes.includes(size)
+                                ? currentSizes.filter(s => s !== size)
+                                : [...currentSizes, size];
+                              setIsEditingProduct({...isEditingProduct, sizes: newSizes});
+                            }}
+                            className={`px-4 py-2 rounded-xl text-[0.65rem] font-bold transition-all border ${
+                              (isEditingProduct.sizes || []).includes(size)
+                                ? 'bg-dark text-white border-dark shadow-lg shadow-dark/10'
+                                : 'bg-cream/30 text-mid border-transparent hover:border-gold/20'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[0.55rem] text-mid italic">
+                        * Select all sizes that are currently available for this product.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-6">

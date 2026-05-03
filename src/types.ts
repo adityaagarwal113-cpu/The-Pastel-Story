@@ -23,6 +23,7 @@ export interface CartItem {
   img: string;
   size: string;
   qty: number;
+  customization?: string;
 }
 
 export type View = 'home' | 'shop' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders';
@@ -39,5 +40,17 @@ export interface Order {
   total: number;
   status: string;
   paymentProof: string;
+  timestamp: any;
+}
+
+export interface Review {
+  id?: string;
+  productId: number;
+  userId: string;
+  userName: string;
+  userPhoto?: string;
+  rating: number; // 1-5
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected';
   timestamp: any;
 }

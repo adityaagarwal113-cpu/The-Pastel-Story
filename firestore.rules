@@ -123,5 +123,28 @@ service cloud.firestore {
     match /wishlists/{userId} {
       allow get, write: if isOwner(userId);
     }
+
+    // --- Reviews ---
+    match /reviews/{reviewId} {
+      allow read: if (resource == null) || (resource.data.status == 'approved') || isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && 
+                      incoming().status == 'approved' && 
+                      isValidReview(incoming());
+      allow update: if isAdmin() && (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'comment'])
+                    );
+      allow delete: if isAdmin();
+
+      function isValidReview(data) {
+        return data.keys().hasAll(['productId', 'userId', 'userName', 'rating', 'comment', 'status', 'timestamp']) &&
+               data.productId is number &&
+               data.userId == request.auth.uid &&
+               data.userName is string && data.userName.size() <= 100 &&
+               data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+               data.comment is string && data.comment.size() <= 1000 &&
+               data.status in ['approved'] &&
+               data.timestamp == request.time;
+      }
+    }
   }
 }

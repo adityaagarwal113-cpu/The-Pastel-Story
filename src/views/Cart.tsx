@@ -7,15 +7,16 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface CartProps {
   cart: CartItem[];
-  onUpdateQty: (id: number, size: string, delta: number) => void;
-  onRemove: (id: number, size: string) => void;
+  onUpdateQty: (id: number, size: string, delta: number, customization?: string) => void;
+  onRemove: (id: number, size: string, customization?: string) => void;
   onClear: () => void;
   setView: (view: View) => void;
   onOpenAuth: () => void;
   setCheckoutData: (data: any) => void;
+  onEditItem: (item: CartItem) => void;
 }
 
-export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth, setCheckoutData }: CartProps) {
+export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth, setCheckoutData, onEditItem }: CartProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -88,44 +89,58 @@ export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth
             <AnimatePresence>
               {cart.map((item) => (
                 <motion.div
-                  key={`${item.id}-${item.size}`}
+                  key={`${item.id}-${item.size}-${item.customization || ''}`}
                   layout
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   className="bg-white p-4 rounded-xl border border-gold/5 shadow-sm flex gap-6"
                 >
-                  <div className="w-24 aspect-[3/4] rounded-lg overflow-hidden shrink-0 bg-blush/20">
+                  <div 
+                    onClick={() => onEditItem(item)}
+                    className="w-24 aspect-[3/4] rounded-lg overflow-hidden shrink-0 bg-blush/20 cursor-pointer hover:opacity-80 transition-opacity"
+                  >
                     <img src={item.img} className="w-full h-full object-cover object-top" alt={item.name} />
                   </div>
                   
                   <div className="flex-1 flex flex-col justify-between py-1">
-                    <div>
+                    <div onClick={() => onEditItem(item)} className="cursor-pointer group">
                       <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-medium text-dark">{item.name}</h3>
+                        <h3 className="font-medium text-dark group-hover:text-gold transition-colors">{item.name}</h3>
                         <p className="font-semibold text-dark">₹{(item.price * item.qty).toLocaleString('en-IN')}</p>
                       </div>
-                      <p className="text-[0.6rem] uppercase tracking-widest text-gold font-bold mb-4">Size: {item.size}</p>
+                      <div className="flex flex-col gap-1 mb-4">
+                        <p className="text-[0.6rem] uppercase tracking-widest text-gold font-bold">Size: {item.size}</p>
+                        {item.customization && (
+                          <div className="bg-cream/40 p-2 rounded border border-gold/5 mt-1">
+                            <p className="text-[0.55rem] uppercase tracking-widest text-dark font-bold mb-1">Customization:</p>
+                            <p className="text-[0.65rem] text-dark/70 font-serif italic line-clamp-2 leading-relaxed">{item.customization}</p>
+                          </div>
+                        )}
+                        <p className="text-[0.5rem] text-gold font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                          Click to Edit
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between">
                        <div className="flex items-center border border-gold/10 rounded-lg bg-cream/50">
                           <button 
-                            onClick={() => onUpdateQty(item.id, item.size, -1)}
+                            onClick={() => onUpdateQty(item.id, item.size, -1, item.customization)}
                             className="p-2 hover:text-gold transition-colors"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
                           <span className="w-8 text-center text-sm font-semibold">{item.qty}</span>
                           <button 
-                            onClick={() => onUpdateQty(item.id, item.size, 1)}
+                            onClick={() => onUpdateQty(item.id, item.size, 1, item.customization)}
                             className="p-2 hover:text-gold transition-colors"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                        </div>
                        <button 
-                        onClick={() => onRemove(item.id, item.size)}
+                        onClick={() => onRemove(item.id, item.size, item.customization)}
                         className="text-light hover:text-red-500 transition-colors p-2"
                        >
                          <Trash2 className="w-4 h-4" />

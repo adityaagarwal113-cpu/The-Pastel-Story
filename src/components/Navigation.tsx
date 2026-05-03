@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, HelpCircle, LayoutGrid, User, Settings } from 'lucide-react';
+import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, HelpCircle, LayoutGrid, User, Settings, ChevronDown } from 'lucide-react';
 import { View } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,6 +31,7 @@ export function Navigation({
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isShopExpanded, setIsShopExpanded] = useState(false);
 
   // ✅ Fix: close menu/modals when back button is pressed
   useEffect(() => {
@@ -211,50 +212,83 @@ export function Navigation({
                 <ul className="py-6 px-6 space-y-2">
                   {navItems.filter(i => !i.auth || (i.auth && user)).map((item) => (
                     <li key={item.label}>
-                      <button
-                        onClick={() => handleNav(item.view)}
-                        className={`w-full flex items-center justify-between py-4 border-b border-gold/5 text-base font-serif italic tracking-wide group ${currentView === item.view ? 'text-gold' : 'text-dark'}`}
-                      >
-                        <div className="flex items-center gap-6">
-                           <span className={currentView === item.view ? 'text-gold' : 'text-mid/50'}>
-                             {item.icon}
-                           </span>
-                           {item.label}
+                      {item.label === 'Shop' ? (
+                        <div className="border-b border-gold/5 overflow-hidden">
+                           <button
+                            onClick={() => setIsShopExpanded(!isShopExpanded)}
+                            className={`w-full flex items-center justify-between py-4 text-base font-serif italic tracking-wide group ${currentView === item.view ? 'text-gold' : 'text-dark'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                               <span className={currentView === item.view ? 'text-gold' : 'text-mid/50'}>
+                                 {item.icon}
+                               </span>
+                               {item.label}
+                            </div>
+                            <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isShopExpanded ? 'rotate-180 text-gold' : 'text-mid/30'}`} />
+                          </button>
+                          
+                          <AnimatePresence>
+                            {isShopExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="pl-12 pb-6 space-y-3"
+                              >
+                                <button
+                                  onClick={() => {
+                                    handleNav('shop');
+                                    sessionStorage.setItem('pastel_filter_cat', 'all');
+                                    // Trigger a custom event to update Shop if it's already open
+                                    window.dispatchEvent(new CustomEvent('pastel_category_change', { detail: 'all' }));
+                                  }}
+                                  className="w-full text-left text-[0.7rem] uppercase tracking-widest font-bold text-mid hover:text-gold transition-colors"
+                                >
+                                  View All Collection
+                                </button>
+                                {categories.map((cat: string) => (
+                                  <button
+                                    key={cat}
+                                    onClick={() => {
+                                      handleNav('shop');
+                                      sessionStorage.setItem('pastel_filter_cat', cat);
+                                      window.dispatchEvent(new CustomEvent('pastel_category_change', { detail: cat }));
+                                    }}
+                                    className="w-full text-left text-[0.7rem] uppercase tracking-widest font-bold text-mid/60 hover:text-gold transition-colors capitalize"
+                                  >
+                                    {cat}
+                                  </button>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                        {item.label === 'Cart' && cartCount > 0 && (
-                          <span className="bg-gold text-white text-[0.6rem] px-2 py-0.5 rounded-full font-bold">
-                            {cartCount}
-                          </span>
-                        )}
-                        {item.label === 'Wishlist' && wishCount > 0 && (
-                          <span className="bg-[#e29578] text-white text-[0.6rem] px-2 py-0.5 rounded-full font-bold">
-                            {wishCount}
-                          </span>
-                        )}
-                      </button>
+                      ) : (
+                        <button
+                          onClick={() => handleNav(item.view)}
+                          className={`w-full flex items-center justify-between py-4 border-b border-gold/5 text-base font-serif italic tracking-wide group ${currentView === item.view ? 'text-gold' : 'text-dark'}`}
+                        >
+                          <div className="flex items-center gap-6">
+                             <span className={currentView === item.view ? 'text-gold' : 'text-mid/50'}>
+                               {item.icon}
+                             </span>
+                             {item.label}
+                          </div>
+                          {item.label === 'Cart' && cartCount > 0 && (
+                            <span className="bg-gold text-white text-[0.6rem] px-2 py-0.5 rounded-full font-bold">
+                              {cartCount}
+                            </span>
+                          )}
+                          {item.label === 'Wishlist' && wishCount > 0 && (
+                            <span className="bg-[#e29578] text-white text-[0.6rem] px-2 py-0.5 rounded-full font-bold">
+                              {wishCount}
+                            </span>
+                          )}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
-
-                {/* COLLECTIONS */}
-                <div className="py-8 px-6 bg-white/50 backdrop-blur-sm border-y border-gold/5">
-                  <p className="text-[0.6rem] uppercase tracking-[0.3em] font-bold text-mid mb-6 flex items-center gap-3">
-                    <span className="h-[1px] flex-1 bg-gold/10"></span>
-                    Curations
-                    <span className="h-[1px] flex-1 bg-gold/10"></span>
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {categories.map((cat: string) => (
-                      <button
-                        key={cat}
-                        onClick={() => handleNav('shop')}
-                        className="bg-white border border-gold/10 p-5 text-left capitalize hover:border-gold/30 transition-all rounded-2xl text-[0.65rem] font-bold text-dark shadow-sm active:scale-95"
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* ACCOUNT */}
                 <div className="px-6 py-10">

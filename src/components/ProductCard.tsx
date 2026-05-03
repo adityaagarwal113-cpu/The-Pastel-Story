@@ -52,14 +52,22 @@ export function ProductCard({ product, onOpen, onAddToCart, onWishlist, isWishli
           </div>
         )}
 
-        {product.badge && (
-          <span className={`absolute top-2 left-2 px-2 py-0.5 text-[0.6rem] tracking-widest uppercase rounded-sm z-10 ${product.oos ? 'bg-mid text-white' : 'bg-gold text-white'}`}>
-            {product.oos ? 'Sold Out' : product.badge}
+        {product.badge && !product.oos && (
+          <span className="absolute top-2 left-2 bg-gold text-white px-2 py-0.5 text-[0.6rem] tracking-widest uppercase rounded-sm z-10 shadow-lg">
+            {product.badge}
           </span>
         )}
 
+        {product.oos && (
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] flex items-center justify-center z-20 transition-opacity group-hover:bg-white/20">
+            <span className="bg-dark text-white px-4 py-2 text-[0.65rem] tracking-[0.2em] uppercase font-bold shadow-2xl rounded-sm">
+              Sold Out
+            </span>
+          </div>
+        )}
+
         {product.stock && !product.oos && product.stock <= 3 && (
-          <span className="absolute bottom-2 left-2 bg-red-500/90 text-white text-[0.55rem] font-medium tracking-wider px-2 py-0.5 rounded-sm backdrop-blur-sm z-10 uppercase animate-pulse">
+          <span className="absolute bottom-2 left-2 bg-red-500/90 text-white text-[0.55rem] font-bold tracking-wider px-2 py-0.5 rounded-sm backdrop-blur-sm z-10 uppercase">
             Only {product.stock} left!
           </span>
         )}
@@ -91,7 +99,7 @@ export function ProductCard({ product, onOpen, onAddToCart, onWishlist, isWishli
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="font-semibold text-base">₹{product.price.toLocaleString('en-IN')}</span>
-            {product.oldPrice && (
+            {product.oldPrice && product.oldPrice > product.price && (
               <>
                 <span className="text-[0.7rem] text-light line-through">₹{product.oldPrice.toLocaleString('en-IN')}</span>
                 <span className="text-[0.6rem] text-green-600 font-medium whitespace-nowrap">({offPct}% OFF)</span>

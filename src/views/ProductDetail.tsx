@@ -1,23 +1,47 @@
-import React, { useState, useRef, CSSProperties, MouseEvent } from 'react';
+import React, { useState, useRef, CSSProperties, MouseEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star } from 'lucide-react';
-import { Product, View } from '../types';
+import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare } from 'lucide-react';
+import { Product, View, CartItem } from '../types';
 import { CATEGORIES, COLORS } from '../constants';
 import { Footer } from '../components/Footer';
+import { ReviewSection } from '../components/ReviewSection';
 
 interface ProductDetailProps {
   product: Product;
-  onAddToCart: (id: number, size: string) => void;
+  onAddToCart: (id: number, size: string, customization?: string) => void;
   onWishlist: (id: number) => void;
   isWishlisted: boolean;
   setView: (view: View) => void;
+  initialEditItem?: CartItem;
 }
 
-export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, setView }: ProductDetailProps) {
+export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
   const [mainImg, setMainImg] = useState(product.imgs[0]);
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'One Size');
+  const [selectedSize, setSelectedSize] = useState(initialEditItem?.size || product.sizes[0] || 'One Size');
+  const [measurements, setMeasurements] = useState('');
+  const [additionalRequests, setAdditionalRequests] = useState('');
+  const [showAdditional, setShowAdditional] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chart' | 'measure'>('chart');
   const [zoomStyle, setZoomStyle] = useState<CSSProperties>({ display: 'none' });
   const zoomRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialEditItem) {
+        setSelectedSize(initialEditItem.size);
+        const [m, a] = (initialEditItem.customization || '').split('\n--- Additional Requests ---\n');
+        setMeasurements(m || '');
+        if (a) {
+            setAdditionalRequests(a);
+            setShowAdditional(true);
+        }
+    }
+  }, [initialEditItem]);
+
+  const scrollToReviews = () => {
+    reviewsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!zoomRef.current) return;
@@ -95,12 +119,15 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                 {CATEGORIES[product.category as keyof typeof CATEGORIES] || product.category}
               </p>
               <h1 className="font-serif text-4xl sm:text-5xl text-dark mb-4 leading-tight">{product.name}</h1>
-              <div className="flex items-center gap-4 text-sm text-mid opacity-70">
+              <button 
+                onClick={scrollToReviews}
+                className="flex items-center gap-4 text-sm text-mid opacity-70 hover:opacity-100 transition-opacity"
+              >
                  <div className="flex text-gold">
                     {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
                  </div>
-                 <span>(124 Reviews)</span>
-              </div>
+                 <span className="underline decoration-gold/30 underline-offset-4">See Reviews</span>
+              </button>
             </div>
 
             <div className="space-y-2">
@@ -121,32 +148,136 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-[0.65rem] uppercase tracking-widest text-dark font-bold">Select Size</h3>
-                <button className="text-[0.6rem] uppercase tracking-widest text-gold hover:underline font-bold">Size Guide</button>
+                <button 
+                  onClick={() => setIsSizeGuideOpen(true)}
+                  className="text-[0.6rem] uppercase tracking-widest text-gold hover:underline font-bold flex items-center gap-1"
+                >
+                  <Info className="w-3 h-3" /> Size Guide
+                </button>
               </div>
               <div className="flex flex-wrap gap-3">
-                {product.sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`min-w-[56px] h-14 border rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
-                      selectedSize === size ? 'bg-dark text-white border-dark shadow-xl shadow-dark/20' : 'border-gold/20 text-mid hover:border-gold'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Custom'].map(size => {
+                  const isAvailable = size === 'Custom' || (product.sizes || []).includes(size);
+                  return (
+                    <button
+                      key={size}
+                      disabled={!isAvailable}
+                      onClick={() => {
+                          setSelectedSize(size);
+                          if (size !== 'Custom') setMeasurements('');
+                      }}
+                      className={`relative min-w-[56px] h-14 border rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                        !isAvailable 
+                          ? 'border-gray-100 text-gray-300 cursor-not-allowed overflow-hidden opacity-60' 
+                          : selectedSize === size 
+                            ? 'bg-dark text-white border-dark shadow-xl shadow-dark/20' 
+                            : 'border-gold/20 text-mid hover:border-gold'
+                      }`}
+                    >
+                      {size}
+                      {!isAvailable && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-full h-[1px] bg-red-400/50 -rotate-45" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+
+            {/* Customization / Custom Size Specification Box */}
+            <div className="space-y-6 pt-4">
+                <AnimatePresence>
+                {selectedSize === 'Custom' && (
+                    <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-4 overflow-hidden"
+                    >
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-[0.65rem] uppercase tracking-widest text-dark font-bold">Size Specifications</h3>
+                        <button 
+                        onClick={() => setMeasurements('')}
+                        className="text-[0.6rem] text-red-400 font-bold uppercase tracking-widest hover:underline"
+                        >
+                        Clear
+                        </button>
+                    </div>
+                    <textarea
+                        value={measurements}
+                        onChange={(e) => setMeasurements(e.target.value)}
+                        placeholder="Please provide measurements for: Bust, Waist, Hip, and Length here..."
+                        className={`w-full p-4 bg-cream/30 border rounded-xl outline-none transition-all font-serif italic text-sm min-h-[120px] resize-none ${
+                            !measurements.trim() ? 'border-red-200 focus:border-red-300' : 'border-gold/10 focus:border-gold/30'
+                        }`}
+                    />
+                    <p className="text-[0.6rem] text-light leading-relaxed">
+                        * Please provide exact measurements in inches for a perfect fit.
+                    </p>
+                    </motion.div>
+                )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                {showAdditional && (
+                    <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-4 overflow-hidden border-t border-gold/5 pt-4"
+                    >
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-[0.65rem] uppercase tracking-widest text-dark font-bold">Additional Customization</h3>
+                        <button 
+                        onClick={() => {
+                            setAdditionalRequests('');
+                            setShowAdditional(false);
+                        }}
+                        className="text-[0.6rem] text-red-400 font-bold uppercase tracking-widest hover:underline"
+                        >
+                        Remove
+                        </button>
+                    </div>
+                    <textarea
+                        value={additionalRequests}
+                        onChange={(e) => setAdditionalRequests(e.target.value)}
+                        placeholder="Please specify your custom requests, design changes, or special preferences here..."
+                        className="w-full p-4 bg-cream/30 border border-gold/10 focus:border-gold/30 rounded-xl outline-none transition-all font-serif italic text-sm min-h-[100px] resize-none"
+                    />
+                    </motion.div>
+                )}
+                </AnimatePresence>
+
+                {!showAdditional && (
+                <div className="pt-2">
+                    <div 
+                        onClick={() => setShowAdditional(true)}
+                        className="text-[0.6rem] uppercase tracking-[0.2em] font-bold text-mid/60 hover:text-gold transition-colors flex items-center gap-2 cursor-pointer group"
+                    >
+                        <Star className="w-3 h-3 group-hover:rotate-12 transition-transform" /> + Add Additional Customization / Requests
+                    </div>
+                </div>
+                )}
             </div>
 
             <div className="pt-8 flex flex-col gap-4">
               <button 
-                disabled={product.oos}
-                onClick={() => onAddToCart(product.id, selectedSize)}
+                disabled={product.oos || (selectedSize === 'Custom' && !measurements.trim())}
+                onClick={() => {
+                    const combined = [
+                        measurements.trim(),
+                        additionalRequests.trim() ? `\n--- Additional Requests ---\n${additionalRequests.trim()}` : ''
+                    ].filter(Boolean).join('');
+                    onAddToCart(product.id, selectedSize, combined);
+                }}
                 className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-[0_20px_40px_rgba(201,169,110,0.3)] hoverScale active:scale-95 transition-all flex items-center justify-center gap-4 disabled:bg-gray-200 disabled:shadow-none"
               >
                 {product.oos ? '❌ Out of Stock' : (
                    <>
-                    <ShoppingBag className="w-5 h-5" /> Add to Bag
+                    <ShoppingBag className="w-5 h-5" /> 
+                    {initialEditItem ? 'Update Order' : 'Add to Bag'}
                    </>
                 )}
               </button>
@@ -200,9 +331,134 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
             </div>
           </div>
         </div>
+
+        <div ref={reviewsRef}>
+          <ReviewSection productId={product.id} />
+        </div>
       </div>
 
       <Footer />
+
+      {/* Size Guide Modal */}
+      <AnimatePresence>
+        {isSizeGuideOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSizeGuideOpen(false)}
+              className="absolute inset-0 bg-dark/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gold/10"
+            >
+              <div className="p-6 border-b border-gold/10 flex justify-between items-center bg-white">
+                <h2 className="text-[0.7rem] uppercase tracking-[0.2em] font-bold text-dark">Size Recommendation</h2>
+                <button 
+                  onClick={() => setIsSizeGuideOpen(false)}
+                  className="p-1.5 hover:bg-cream rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4 text-dark" />
+                </button>
+              </div>
+
+              <div className="flex border-b border-gold/10">
+                <button 
+                  onClick={() => setActiveTab('chart')}
+                  className={`flex-1 py-4 text-[0.6rem] uppercase tracking-widest font-bold transition-all relative ${activeTab === 'chart' ? 'text-gold' : 'text-mid/60'}`}
+                >
+                  Size Chart
+                  {activeTab === 'chart' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />}
+                </button>
+                <button 
+                  onClick={() => setActiveTab('measure')}
+                  className={`flex-1 py-4 text-[0.6rem] uppercase tracking-widest font-bold transition-all relative ${activeTab === 'measure' ? 'text-gold' : 'text-mid/60'}`}
+                >
+                  How to measure
+                  {activeTab === 'measure' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />}
+                </button>
+              </div>
+
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                <AnimatePresence mode="wait">
+                  {activeTab === 'chart' ? (
+                    <motion.div
+                      key="chart"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="space-y-4"
+                    >
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="text-[0.55rem] uppercase tracking-widest text-mid font-bold">
+                            <th className="pb-3 px-1">Size</th>
+                            <th className="pb-3 text-center">Waist (in)</th>
+                            <th className="pb-3 text-right">Inseam (in)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gold/5">
+                          {[
+                            { s: '30', w: '30.0', i: '33.0' },
+                            { s: '32', w: '32.0', i: '33.0' },
+                            { s: '34', w: '34.0', i: '33.0' },
+                            { s: '36', w: '36.0', i: '33.0' },
+                            { s: '38', w: '38.0', i: '33.0' }
+                          ].map(row => (
+                            <tr key={row.s} className="text-sm">
+                              <td className="py-3 px-1 font-bold text-dark">{row.s}</td>
+                              <td className="py-3 text-center text-mid">{row.w}</td>
+                              <td className="py-3 text-right text-mid">{row.i}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="measure"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="space-y-6"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex gap-4">
+                          <div className="w-6 h-6 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[0.6rem] font-bold shrink-0">1</div>
+                          <div>
+                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Waist</p>
+                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure around the narrowest part of your waistline, keeping the tape a bit loose.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="w-6 h-6 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[0.6rem] font-bold shrink-0">2</div>
+                          <div>
+                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Inseam</p>
+                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure from the top of your inner leg to the floor.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="p-6 bg-cream/10 border-t border-gold/5 flex justify-center">
+                 <button 
+                  onClick={() => setIsSizeGuideOpen(false)}
+                  className="px-8 py-3 bg-dark text-white rounded-full text-[0.6rem] uppercase tracking-widest font-bold hover:scale-105 transition-all shadow-lg shadow-dark/20"
+                 >
+                   Continue Shopping
+                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

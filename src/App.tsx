@@ -84,6 +84,7 @@ function AppContent() {
   };
 
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
   const [checkoutData, setCheckoutData] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -169,20 +170,30 @@ function AppContent() {
   };
 
   // Actions
-  const addToCart = (id: number, size?: string) => {
+  const addToCart = (id: number, size?: string, customization?: string) => {
     const product = products.find(p => p.id === id);
     if (!product || product.oos) return;
 
     const selectedSize = size || (product.sizes[0] || 'One Size');
     
     setCart(prev => {
-      const existing = prev.find(item => item.id === id && item.size === selectedSize);
+      // If we were editing, remove the old version first
+      let baseCart = prev;
+      if (editingCartItem) {
+        baseCart = prev.filter(item => !(
+          item.id === editingCartItem.id && 
+          item.size === editingCartItem.size && 
+          item.customization === editingCartItem.customization
+        ));
+      }
+
+      const existing = baseCart.find(item => item.id === id && item.size === selectedSize && item.customization === customization);
       if (existing) {
-        return prev.map(item => 
-          (item.id === id && item.size === selectedSize) ? { ...item, qty: item.qty + 1 } : item
+        return baseCart.map(item => 
+          (item.id === id && item.size === selectedSize && item.customization === customization) ? { ...item, qty: item.qty + 1 } : item
         );
       }
-      return [...prev, {
+      return [...baseCart, {
         id: product.id,
         name: product.name,
         price: product.price,
@@ -190,10 +201,17 @@ function AppContent() {
         color: product.color,
         img: product.imgs[0],
         size: selectedSize,
-        qty: 1
+        qty: 1,
+        customization
       }];
     });
-    showToast(`✦ ${product.name} added to cart`);
+    
+    if (editingCartItem) {
+      showToast('✦ Order updated');
+      setEditingCartItem(null);
+    } else {
+      showToast(`✦ ${product.name} added to cart`);
+    }
   };
 
   const toggleWishlist = (id: number) => {
@@ -207,10 +225,10 @@ function AppContent() {
     });
   };
 
-  const updateCartQty = (id: number, size: string, delta: number) => {
+  const updateCartQty = (id: number, size: string, delta: number, customization?: string) => {
     setCart(prev => {
       return prev.map(item => {
-        if (item.id === id && item.size === size) {
+        if (item.id === id && item.size === size && item.customization === customization) {
           const newQty = Math.max(0, item.qty + delta);
           return { ...item, qty: newQty };
         }
@@ -219,13 +237,14 @@ function AppContent() {
     });
   };
 
-  const removeFromCart = (id: number, size: string) => {
-    setCart(prev => prev.filter(item => !(item.id === id && item.size === size)));
+  const removeFromCart = (id: number, size: string, customization?: string) => {
+    setCart(prev => prev.filter(item => !(item.id === id && item.size === size && item.customization === customization)));
     showToast('Item removed from cart');
   };
 
-  const openProduct = (id: number) => {
+  const openProduct = (id: number, editItem?: CartItem) => {
     setSelectedProductId(id);
+    setEditingCartItem(editItem || null);
     navigateTo('pdp');
   };
 
@@ -295,6 +314,7 @@ function AppContent() {
                 onWishlist={toggleWishlist}
                 isWishlisted={wishlist.includes(selectedProductId)}
                 setView={navigateTo}
+                initialEditItem={editingCartItem || undefined}
               />
             )}
             {currentView === 'cart' && (
@@ -306,6 +326,7 @@ function AppContent() {
                 setView={navigateTo}
                 onOpenAuth={() => setIsAuthModalOpen(true)}
                 setCheckoutData={setCheckoutData}
+                onEditItem={(item) => openProduct(item.id, item)}
               />
             )}
             {currentView === 'payment' && checkoutData && (
