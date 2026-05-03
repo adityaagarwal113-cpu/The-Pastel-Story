@@ -318,6 +318,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     <thead className="bg-cream/30 text-[0.6rem] uppercase tracking-widest text-mid font-bold">
                       <tr>
                         <th className="px-8 py-4">ID</th>
+                        <th className="px-8 py-4">Date</th>
                         <th className="px-8 py-4">Customer</th>
                         <th className="px-8 py-4">Items</th>
                         <th className="px-8 py-4">Total</th>
@@ -338,6 +339,14 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       }).map(order => (
                       <tr key={order.id} className="text-xs hover:bg-cream/10 transition-colors">
                         <td className="px-8 py-6 font-mono text-[0.65rem] opacity-50">{order.orderId}</td>
+                        <td className="px-8 py-6">
+                          <p className="text-[0.7rem] font-bold text-dark">
+                            {order.timestamp?.toDate ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (order.timestamp instanceof Date ? order.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Pending')}
+                          </p>
+                          <p className="text-[0.6rem] text-mid">
+                            {order.timestamp?.toDate ? order.timestamp.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : (order.timestamp instanceof Date ? order.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '')}
+                          </p>
+                        </td>
                         <td className="px-8 py-6">
                           <p className="font-bold">{order.userName}</p>
                           <p className="text-[0.65rem] opacity-60">{order.userPhone}</p>

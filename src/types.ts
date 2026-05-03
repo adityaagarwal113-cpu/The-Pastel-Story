@@ -24,6 +24,7 @@ export interface CartItem {
   size: string;
   qty: number;
   customization?: string;
+  selected?: boolean;
 }
 
 export type View = 'home' | 'shop' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders';

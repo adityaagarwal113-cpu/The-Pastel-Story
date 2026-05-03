@@ -10,9 +10,10 @@ interface WishlistProps {
   onOpen: (id: number) => void;
   onWishlist: (id: number) => void;
   onAddToCart: (id: number) => void;
+  onMoveToCart: (id: number) => void;
 }
 
-export function Wishlist({ products, wishlist, onOpen, onWishlist, onAddToCart }: WishlistProps) {
+export function Wishlist({ products, wishlist, onOpen, onWishlist, onAddToCart, onMoveToCart }: WishlistProps) {
   const wishItems = products.filter(p => wishlist.includes(p.id));
 
   return (
@@ -33,7 +34,7 @@ export function Wishlist({ products, wishlist, onOpen, onWishlist, onAddToCart }
                 key={p.id} 
                 product={p} 
                 onOpen={onOpen} 
-                onAddToCart={onAddToCart}
+                onAddToCart={onMoveToCart}
                 onWishlist={onWishlist}
                 isWishlisted={true}
               />

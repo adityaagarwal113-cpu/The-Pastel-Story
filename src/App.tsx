@@ -35,7 +35,16 @@ function AppContent() {
   
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem(CART_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.map(item => ({
+        ...item,
+        selected: item.selected !== undefined ? item.selected : true
+      })) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [wishlist, setWishlist] = useState<number[]>(() => {
@@ -103,8 +112,17 @@ function AppContent() {
           if (cartSnap.exists()) {
             const cloudItems = cartSnap.data().items || [];
             cloudItems.forEach((c: CartItem) => {
-              if (!masterCart.find(l => l.id === c.id && l.size === c.size)) {
-                masterCart.push(c);
+              const normalizedC = { 
+                ...c, 
+                customization: c.customization || '', 
+                selected: c.selected !== undefined ? c.selected : true 
+              };
+              if (!masterCart.find(l => 
+                l.id === normalizedC.id && 
+                l.size === normalizedC.size && 
+                (l.customization || '') === normalizedC.customization
+              )) {
+                masterCart.push(normalizedC);
               }
             });
           }
@@ -123,7 +141,29 @@ function AppContent() {
             });
           }
           
-          setCart(masterCart);
+          // Force deduplication and normalization of masterCart
+          const uniqueCart: CartItem[] = [];
+          masterCart.forEach(item => {
+            const normalized = { 
+              ...item, 
+              customization: item.customization || '',
+              selected: item.selected !== undefined ? item.selected : true
+            };
+            const existing = uniqueCart.find(u => 
+              u.id === normalized.id && 
+              u.size === normalized.size && 
+              (u.customization || '') === normalized.customization
+            );
+            if (existing) {
+              existing.qty += normalized.qty;
+              // If cloud version was unselected, keep it unselected
+              if (normalized.selected === false) existing.selected = false;
+            } else {
+              uniqueCart.push(normalized);
+            }
+          });
+          
+          setCart(uniqueCart);
           setWishlist(masterWish);
           setHasLoadedCloud(true);
 
@@ -175,6 +215,7 @@ function AppContent() {
     if (!product || product.oos) return;
 
     const selectedSize = size || (product.sizes[0] || 'One Size');
+    const normalizedCustomization = customization || '';
     
     setCart(prev => {
       // If we were editing, remove the old version first
@@ -183,14 +224,21 @@ function AppContent() {
         baseCart = prev.filter(item => !(
           item.id === editingCartItem.id && 
           item.size === editingCartItem.size && 
-          item.customization === editingCartItem.customization
+          (item.customization || '') === (editingCartItem.customization || '')
         ));
       }
 
-      const existing = baseCart.find(item => item.id === id && item.size === selectedSize && item.customization === customization);
+      const existing = baseCart.find(item => 
+        item.id === id && 
+        item.size === selectedSize && 
+        (item.customization || '') === normalizedCustomization
+      );
+
       if (existing) {
         return baseCart.map(item => 
-          (item.id === id && item.size === selectedSize && item.customization === customization) ? { ...item, qty: item.qty + 1 } : item
+          (item.id === id && item.size === selectedSize && (item.customization || '') === normalizedCustomization) 
+            ? { ...item, qty: item.qty + 1 } 
+            : item
         );
       }
       return [...baseCart, {
@@ -202,7 +250,8 @@ function AppContent() {
         img: product.imgs[0],
         size: selectedSize,
         qty: 1,
-        customization
+        customization: normalizedCustomization,
+        selected: true
       }];
     });
     
@@ -226,9 +275,10 @@ function AppContent() {
   };
 
   const updateCartQty = (id: number, size: string, delta: number, customization?: string) => {
+    const normalizedCustomization = customization || '';
     setCart(prev => {
       return prev.map(item => {
-        if (item.id === id && item.size === size && item.customization === customization) {
+        if (item.id === id && item.size === size && (item.customization || '') === normalizedCustomization) {
           const newQty = Math.max(0, item.qty + delta);
           return { ...item, qty: newQty };
         }
@@ -238,8 +288,40 @@ function AppContent() {
   };
 
   const removeFromCart = (id: number, size: string, customization?: string) => {
-    setCart(prev => prev.filter(item => !(item.id === id && item.size === size && item.customization === customization)));
+    const normalizedCustomization = customization || '';
+    setCart(prev => prev.filter(item => !(item.id === id && item.size === size && (item.customization || '') === normalizedCustomization)));
     showToast('Item removed from cart');
+  };
+
+  const toggleCartSelection = (id: number, size: string, customization?: string) => {
+    const normalizedCustomization = customization || '';
+    setCart(prev => prev.map(item => {
+      if (item.id === id && item.size === size && (item.customization || '') === normalizedCustomization) {
+        return { ...item, selected: !item.selected };
+      }
+      return item;
+    }));
+  };
+
+  const moveToWishlist = (id: number, size: string, customization?: string) => {
+    const item = cart.find(i => i.id === id && i.size === size && (i.customization || '') === (customization || ''));
+    if (!item) return;
+    
+    removeFromCart(id, size, customization);
+    if (!wishlist.includes(id)) {
+      toggleWishlist(id);
+    } else {
+      showToast('✦ Moved to wishlist');
+    }
+  };
+
+  const moveFromWishlistToCart = (id: number) => {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+    
+    addToCart(id);
+    toggleWishlist(id);
+    showToast('✦ Moved to bag');
   };
 
   const openProduct = (id: number, editItem?: CartItem) => {
@@ -327,12 +409,17 @@ function AppContent() {
                 onOpenAuth={() => setIsAuthModalOpen(true)}
                 setCheckoutData={setCheckoutData}
                 onEditItem={(item) => openProduct(item.id, item)}
+                onToggleSelection={toggleCartSelection}
+                onMoveToWishlist={moveToWishlist}
               />
             )}
             {currentView === 'payment' && checkoutData && (
               <Payment 
                 checkoutData={checkoutData}
-                onClearCart={() => setCart([])}
+                onClearCart={() => {
+                  const itemsToStay = cart.filter(i => !i.selected);
+                  setCart(itemsToStay);
+                }}
                 setView={navigateTo}
               />
             )}
@@ -344,6 +431,7 @@ function AppContent() {
                 onOpen={openProduct} 
                 onWishlist={toggleWishlist} 
                 onAddToCart={addToCart}
+                onMoveToCart={moveFromWishlistToCart}
               />
             )}
             {currentView === 'help' && <Help />}

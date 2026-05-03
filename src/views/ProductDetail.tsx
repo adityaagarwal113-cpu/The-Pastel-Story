@@ -1,6 +1,6 @@
 import React, { useState, useRef, CSSProperties, MouseEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare } from 'lucide-react';
+import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CheckCircle2, ChevronRight } from 'lucide-react';
 import { Product, View, CartItem } from '../types';
 import { CATEGORIES, COLORS } from '../constants';
 import { Footer } from '../components/Footer';
@@ -18,6 +18,7 @@ interface ProductDetailProps {
 export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
   const [mainImg, setMainImg] = useState(product.imgs[0]);
   const [selectedSize, setSelectedSize] = useState(initialEditItem?.size || product.sizes[0] || 'One Size');
+  const [addedToCart, setAddedToCart] = useState(false);
   const [measurements, setMeasurements] = useState('');
   const [additionalRequests, setAdditionalRequests] = useState('');
   const [showAdditional, setShowAdditional] = useState(false);
@@ -271,16 +272,34 @@ export function ProductDetail({ product, onAddToCart, onWishlist, isWishlisted, 
                         additionalRequests.trim() ? `\n--- Additional Requests ---\n${additionalRequests.trim()}` : ''
                     ].filter(Boolean).join('');
                     onAddToCart(product.id, selectedSize, combined);
+                    setAddedToCart(true);
                 }}
-                className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-[0_20px_40px_rgba(201,169,110,0.3)] hoverScale active:scale-95 transition-all flex items-center justify-center gap-4 disabled:bg-gray-200 disabled:shadow-none"
+                className={`w-full py-5 rounded-xl font-bold text-xs tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-4 disabled:bg-gray-200 disabled:shadow-none ${
+                    addedToCart ? 'bg-green-500 text-white shadow-[0_20px_40px_rgba(34,197,94,0.3)]' : 'bg-gold text-white shadow-[0_20px_40px_rgba(201,169,110,0.3)]'
+                }`}
               >
                 {product.oos ? '❌ Out of Stock' : (
                    <>
-                    <ShoppingBag className="w-5 h-5" /> 
-                    {initialEditItem ? 'Update Order' : 'Add to Bag'}
+                    {addedToCart ? <CheckCircle2 className="w-5 h-5" /> : <ShoppingBag className="w-5 h-5" />} 
+                    {addedToCart ? 'Added to Bag' : initialEditItem ? 'Update Order' : 'Add to Bag'}
                    </>
                 )}
               </button>
+              
+              <AnimatePresence>
+                {addedToCart && (
+                  <motion.button
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    onClick={() => setView('cart')}
+                    className="w-full py-4 bg-dark text-white rounded-xl font-bold text-[0.65rem] tracking-widest uppercase shadow-xl flex items-center justify-center gap-3 group"
+                  >
+                    View Bag & Checkout <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+
               <button 
                 onClick={() => onWishlist(product.id)}
                 className={`w-full py-4 border rounded-xl font-bold text-[0.65rem] tracking-widest uppercase transition-all flex items-center justify-center gap-3 ${
