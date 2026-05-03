@@ -13,6 +13,7 @@ import { AuthModal } from './components/AuthModal';
 import { useSiteData } from './hooks/useSiteData';
 import { db } from './lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Analytics } from '@vercel/analytics/react';
 
 // Views (to be created)
 import { Home } from './views/Home';
@@ -325,9 +326,9 @@ function AppContent() {
     const product = products.find(p => p.id === id);
     if (!product) return;
     
-    addToCart(id);
+    addToCart(id, product.sizes[0] || 'One Size');
     toggleWishlist(id);
-    showToast('✦ Moved to bag');
+    showToast('✦ Moved to cart');
   };
 
   const openProduct = (id: number, editItem?: CartItem) => {
@@ -492,6 +493,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <Analytics />
     </AuthProvider>
   );
 }

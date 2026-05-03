@@ -98,6 +98,19 @@ export function ProductCard({ product, onOpen, onAddToCart, onWishlist, isWishli
             )}
           </div>
         </div>
+
+        {!product.oos && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart(product.id);
+            }}
+            className="mt-4 w-full py-3 border border-dark/10 rounded-sm text-[0.6rem] tracking-[0.2em] font-bold uppercase transition-all hover:bg-dark hover:text-white flex items-center justify-center gap-2 group/btn"
+          >
+            <ShoppingBag className="w-3 h-3 transition-transform group-hover/btn:scale-110" />
+            Add to Cart
+          </button>
+        )}
       </div>
     </motion.div>
   );

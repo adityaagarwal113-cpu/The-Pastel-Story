@@ -11,11 +11,13 @@ import {
   QrCode
 } from 'lucide-react';
 import { View } from '../types';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../contexts/AuthContext';
 import { sendEmail, getOrderConfirmationHtml } from '../services/emailService';
+import { optimizeImageForUpload } from '../lib/image-optimization';
 
 interface PaymentProps {
   checkoutData: {
@@ -67,7 +69,20 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
     setIsSubmitting(true);
     try {
       const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      const orderRef = doc(collection(db, 'orders'));
+      
+      // 1. Upload Payment Proof to Storage
+      let proofUrl = 'Manual Verification Required';
+      try {
+        const { blob } = await optimizeImageForUpload(proofFile);
+        const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
+        const snapshot = await uploadBytes(storageRef, blob);
+        proofUrl = await getDownloadURL(snapshot.ref);
+      } catch (uploadErr) {
+        console.error("Proof upload failed, continuing with fallback status:", uploadErr);
+      }
+
+      // 2. Create Order Document using orderId as Doc ID
+      const orderRef = doc(db, 'orders', orderId);
       
       await setDoc(orderRef, {
         orderId,
@@ -80,7 +95,7 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
         items: checkoutData.items,
         total: checkoutData.total,
         status: 'Order Placed',
-        paymentProof: 'Uploaded',
+        paymentProof: proofUrl,
         timestamp: serverTimestamp(),
       });
 

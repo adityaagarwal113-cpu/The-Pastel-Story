@@ -80,8 +80,8 @@ export function Cart({
             <div className="w-24 h-24 bg-cream rounded-full flex items-center justify-center mx-auto mb-8">
               <ShoppingBag className="w-10 h-10 text-gold/40" />
             </div>
-            <h2 className="font-serif text-4xl text-dark mb-4 italic">Your bag is empty</h2>
-            <p className="text-light text-sm mb-10 max-w-xs mx-auto">Looks like you haven't added your softest chapter yet!</p>
+            <h2 className="font-serif text-4xl text-dark mb-4 italic">Your cart is empty</h2>
+            <p className="text-light text-sm mb-10 max-w-xs mx-auto">Looks like you haven't added anything to your cart yet!</p>
             <button 
               onClick={() => setView('shop')}
               className="bg-dark text-white px-10 py-4 rounded-xl font-bold text-xs tracking-[0.2em] uppercase hover:scale-105 active:scale-95 transition-all shadow-xl shadow-dark/20"
@@ -99,14 +99,14 @@ export function Cart({
       <div className="max-w-[1400px] mx-auto px-6 sm:px-12 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16 border-b border-gold/10 pb-12">
           <div>
-            <span className="text-micro text-gold mb-2 block">Your Archive</span>
-            <h1 className="font-serif text-5xl text-dark italic">Shopping Bag</h1>
+            <span className="text-micro text-gold mb-2 block">Order Items</span>
+            <h1 className="font-serif text-5xl text-dark italic">Shopping Cart</h1>
           </div>
           <button 
             onClick={() => setView('shop')}
             className="text-micro text-dark/40 hover:text-gold transition-colors flex items-center gap-2 italic lowercase"
           >
-            <Plus className="w-3 h-3" /> back to selection
+            <Plus className="w-3 h-3" /> back to shop
           </button>
         </div>
 
@@ -183,7 +183,7 @@ export function Cart({
                             onClick={() => onMoveToWishlist(item.id, item.size, item.customization)}
                             className="text-micro text-mid/40 hover:text-gold transition-colors italic lowercase border-b border-transparent hover:border-gold/20"
                           >
-                            save in journal
+                            move to wishlist
                           </button>
                        </div>
 
@@ -210,7 +210,7 @@ export function Cart({
           {/* Checkout UI - Floating Modern Box */}
           <div className="lg:col-span-5 space-y-8 sticky top-48">
             <div className="bg-white p-10 luxury-shadow space-y-10">
-              <h2 className="text-micro text-gold mb-8">Curated Summary</h2>
+              <h2 className="text-micro text-gold mb-8">Cart Summary</h2>
               
               <div className="space-y-6">
                 <div className="flex justify-between text-xs tracking-widest uppercase text-mid/60">
@@ -218,12 +218,12 @@ export function Cart({
                   <span>₹{subtotal.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-xs tracking-widest uppercase text-mid/60">
-                  <span>Logistics</span>
-                  <span className="text-gold font-bold">{shipping === 0 ? 'COMPLIMENTARY' : `₹${shipping}`}</span>
+                  <span>Shipping</span>
+                  <span className="text-gold font-bold">{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
                 </div>
                 
                 <div className="pt-8 border-t border-gold/5 flex justify-between items-baseline">
-                  <span className="font-serif text-3xl font-light italic">Estimate</span>
+                  <span className="font-serif text-3xl font-light italic">Total</span>
                   <span className="font-serif text-4xl font-bold text-dark">₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
@@ -231,10 +231,10 @@ export function Cart({
               <div className="space-y-4 pt-10 border-t border-gold/5">
                  <div className="space-y-6">
                    <div className="space-y-3">
-                     <label className="text-micro text-gold">Archived User Name</label>
+                     <label className="text-micro text-gold">Full Name</label>
                      <input 
                       type="text" 
-                      placeholder="Shipping Name" 
+                      placeholder="Enter your name" 
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif"
@@ -242,20 +242,20 @@ export function Cart({
                    </div>
                    <div className="grid grid-cols-2 gap-8">
                      <div className="space-y-3">
-                       <label className="text-micro text-gold">Contact Line</label>
+                       <label className="text-micro text-gold">Phone Number</label>
                        <input 
                         type="tel" 
-                        placeholder="Phone" 
+                        placeholder="10-digit mobile number" 
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif"
                        />
                      </div>
                      <div className="space-y-3">
-                       <label className="text-micro text-gold">Pin Point</label>
+                       <label className="text-micro text-gold">Pincode</label>
                        <input 
                         type="text" 
-                        placeholder="Pincode" 
+                        placeholder="6-digit area code" 
                         value={formData.pincode}
                         onChange={(e) => setFormData({...formData, pincode: e.target.value})}
                         className="w-full bg-transparent border-b border-gold/10 py-2 text-sm outline-none focus:border-gold transition-all placeholder:text-mid/20 italic font-serif"
@@ -263,9 +263,9 @@ export function Cart({
                      </div>
                    </div>
                    <div className="space-y-3">
-                     <label className="text-micro text-gold">The Destination</label>
+                     <label className="text-micro text-gold">Shipping Address</label>
                      <textarea 
-                      placeholder="Complete Address" 
+                      placeholder="H.No, Street, Area, City, State" 
                       value={formData.address}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
                       rows={2}
@@ -279,9 +279,9 @@ export function Cart({
                   onClick={handleCheckout}
                   className="w-full py-6 bg-dark text-white font-bold text-micro tracking-[0.4em] uppercase hover:bg-gold hover:luxury-shadow transition-all flex items-center justify-center gap-6 mt-10 disabled:opacity-50"
                  >
-                   {isSubmitting ? 'Sychnronizing...' : (
+                   {isSubmitting ? 'Processing...' : (
                       <>
-                        <CreditCard className="w-4 h-4" /> {user ? 'Proceed to Finality' : 'Sign In to Proceed'}
+                        <CreditCard className="w-4 h-4" /> {user ? 'Proceed to Payment' : 'Sign In to Checkout'}
                       </>
                    )}
                  </button>

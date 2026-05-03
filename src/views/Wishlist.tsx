@@ -20,9 +20,9 @@ export function Wishlist({ products, wishlist, onOpen, onWishlist, onAddToCart, 
   return (
     <div className="bg-[#faf8f6] min-h-screen pt-24">
       <header className="pt-20 pb-16 px-6 text-center">
-        <span className="text-micro text-gold mb-4 block">The Journal</span>
+        <span className="text-micro text-gold mb-4 block">Your Wishlist</span>
         <h1 className="font-serif text-5xl sm:text-7xl text-dark mb-4 italic tracking-tight">
-          Saved <span className="text-gold-d not-italic font-medium">Favorites</span>
+          My <span className="text-gold-d not-italic font-medium">Wishlist</span>
         </h1>
         <div className="h-px w-20 bg-gold/10 mx-auto my-10" />
       </header>
@@ -43,13 +43,13 @@ export function Wishlist({ products, wishlist, onOpen, onWishlist, onAddToCart, 
           </div>
         ) : (
           <div className="text-center py-40 bg-white/40 border border-gold/5 luxury-shadow max-w-2xl mx-auto rounded-sm">
-             <div className="text-2xl mb-6 opacity-30 italic font-serif">Empty Journal</div>
-             <p className="text-mid/60 text-sm mb-12 max-w-xs mx-auto leading-relaxed">Your curated selection is currently empty. Explore the archive to find your softest chapter.</p>
+             <div className="text-2xl mb-6 opacity-30 italic font-serif">Wishlist is empty</div>
+             <p className="text-mid/60 text-sm mb-12 max-w-xs mx-auto leading-relaxed">Your wishlist is currently empty. Browse the shop to add items you love.</p>
              <button 
               onClick={() => window.dispatchEvent(new CustomEvent('pastel_nav', { detail: 'shop' }))}
               className="text-micro bg-dark text-white px-10 py-5 hover:bg-gold transition-all"
              >
-               Explore Selection
+               Browse Collection
              </button>
           </div>
         )}

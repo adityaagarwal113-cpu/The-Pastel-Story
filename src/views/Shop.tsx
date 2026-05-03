@@ -106,7 +106,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
               <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-light/40 group-focus-within:text-gold transition-colors" />
               <input 
                 type="text" 
-                placeholder="Search Archive..."
+                placeholder="Search products..."
                 className="w-full pl-6 pr-4 py-1 bg-transparent outline-none text-xs tracking-widest uppercase placeholder:text-light/30 transition-all font-medium"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -136,7 +136,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
            <aside className="hidden lg:block space-y-16 sticky top-48 h-fit">
              <section>
                 <div className="flex items-center gap-4 mb-10">
-                  <span className="text-micro text-gold">Archives</span>
+                  <span className="text-micro text-gold">Categories</span>
                   <div className="h-px flex-1 bg-gold/10" />
                 </div>
                 <div className="space-y-6">
@@ -144,7 +144,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
                     onClick={() => setSelectedCategory('all')}
                     className={`block w-full text-left text-xs uppercase tracking-[0.2em] transition-all hover:pl-2 ${selectedCategory === 'all' ? 'text-dark font-bold' : 'text-mid/50 hover:text-gold'}`}
                   >
-                    All Collection <span className="text-[0.6rem] ml-2 opacity-30">({products.length})</span>
+                    View All <span className="text-[0.6rem] ml-2 opacity-30">({products.length})</span>
                   </button>
                   {categories.map((cat: string) => (
                     <button 
@@ -212,7 +212,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
            <div>
              <div className="mb-12 flex items-center justify-between border-b border-gold/5 pb-6">
                 <span className="text-mid/40 text-micro">
-                  Selection / <strong>{filteredProducts.length}</strong> Results
+                  Products / <strong>{filteredProducts.length}</strong> Results
                 </span>
              </div>
 
@@ -231,8 +231,8 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
               </div>
              ) : (
                <div className="text-center py-40 border border-gold/10 bg-white/40">
-                  <h3 className="font-serif text-3xl text-dark mb-4 italic">The archive is empty.</h3>
-                  <p className="text-mid text-sm mb-10 opacity-60">Try adjusting your criteria to find something beautiful.</p>
+                  <h3 className="font-serif text-3xl text-dark mb-4 italic">No products found.</h3>
+                  <p className="text-mid text-sm mb-10 opacity-60">Try adjusting your filters to find what you're looking for.</p>
                   <button 
                     onClick={clearFilters}
                     className="text-micro bg-dark text-white px-10 py-5 hover:bg-gold transition-all"

@@ -64,7 +64,7 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                   onClick={() => setView('shop')}
                   className="group relative overflow-hidden bg-dark text-white px-10 py-5 rounded-sm hover:luxury-shadow transition-all duration-500"
                 >
-                  <span className="relative z-10 text-micro tracking-[0.3em]">{siteConfig.heroButtonText || 'Explore Collection'}</span>
+                  <span className="relative z-10 text-micro tracking-[0.3em]">{siteConfig.heroButtonText || 'Shop Collection'}</span>
                   <div className="absolute inset-0 bg-gold scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
                 </button>
                 <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('shop')}>
@@ -170,8 +170,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
             <div className="max-w-xl">
-              <span className="text-micro text-gold mb-4 block underline underline-offset-8 decoration-gold/20">The Selection</span>
-              <h2 className="font-serif text-5xl sm:text-7xl text-dark mb-4">Curated Edits</h2>
+              <span className="text-micro text-gold mb-4 block underline underline-offset-8 decoration-gold/20">The Collection</span>
+              <h2 className="font-serif text-5xl sm:text-7xl text-dark mb-4">Latest Arrivals</h2>
               <p className="text-mid text-sm sm:text-base opacity-70 mt-4 leading-relaxed">
                 Handpicked silhouettes from our latest drop, designed for the modern woman who values quiet luxury.
               </p>
