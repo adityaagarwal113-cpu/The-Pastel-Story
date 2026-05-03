@@ -25,15 +25,19 @@ export interface CartItem {
   qty: number;
 }
 
-export type View = 'home' | 'shop' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin';
+export type View = 'home' | 'shop' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders';
 
 export interface Order {
+  id?: string;
   orderId: string;
-  name: string;
-  phone: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
   address: string;
-  items: string;
-  total: string;
+  pincode: string;
+  items: string; // Stringified CartItem[]
+  total: number;
   status: string;
-  timestamp: string;
+  paymentProof: string;
+  timestamp: any;
 }

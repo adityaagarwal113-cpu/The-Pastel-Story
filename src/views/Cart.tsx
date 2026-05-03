@@ -40,7 +40,7 @@ export function Cart({ cart, onUpdateQty, onRemove, onClear, setView, onOpenAuth
        return;
     }
 
-    const itemsString = cart.map(i => `${i.name} (${i.size}) x${i.qty}`).join(', ');
+    const itemsString = JSON.stringify(cart);
     
     setCheckoutData({
       ...formData,

@@ -32,6 +32,16 @@ export function Navigation({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
+  // ✅ Fix: close menu/modals when back button is pressed
+  useEffect(() => {
+    const handleClose = () => {
+      setIsMobileMenuOpen(false);
+      setIsLogoutConfirmOpen(false);
+    };
+    window.addEventListener('popstate', handleClose);
+    return () => window.removeEventListener('popstate', handleClose);
+  }, []);
+
   // ✅ Fix: close menu when login/logout happens
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -42,6 +52,7 @@ export function Navigation({
     { label: 'Shop', view: 'shop' as View, icon: <ShoppingBag className="w-4 h-4" /> },
     { label: 'Cart', view: 'cart' as View, icon: <ShoppingBag className="w-4 h-4" /> },
     { label: 'Wishlist', view: 'wishlist' as View, icon: <Heart className="w-4 h-4" /> },
+    { label: 'Orders', view: 'orders' as View, icon: <Package className="w-4 h-4" />, auth: true },
     { label: 'Track Order', view: 'track' as View, icon: <Package className="w-4 h-4" /> },
     { label: 'Help', view: 'help' as View, icon: <HelpCircle className="w-4 h-4" /> },
   ];
@@ -85,7 +96,7 @@ export function Navigation({
         </div>
 
         <ul className="hidden md:flex items-center gap-8">
-          {navItems.filter(i => i.label !== 'Cart').map((item) => (
+          {navItems.filter(i => i.label !== 'Cart' && (!i.auth || (i.auth && user))).map((item) => (
             <li key={item.label}>
               <button
                 onClick={() => handleNav(item.view)}
@@ -198,7 +209,7 @@ export function Navigation({
 
                 {/* NAV */}
                 <ul className="py-6 px-6 space-y-2">
-                  {navItems.map((item) => (
+                  {navItems.filter(i => !i.auth || (i.auth && user)).map((item) => (
                     <li key={item.label}>
                       <button
                         onClick={() => handleNav(item.view)}

@@ -24,6 +24,7 @@ import { Wishlist } from './views/Wishlist';
 import { TrackOrder } from './views/TrackOrder';
 import { Help } from './views/Help';
 import { AdminPortal } from './views/AdminPortal';
+import { Orders } from './views/Orders';
 
 const CART_STORAGE_KEY = 'pastel_cart_v1';
 const WISH_STORAGE_KEY = 'pastel_wish_v1';
@@ -64,6 +65,9 @@ function AppContent() {
 
   const navigateTo = (view: View) => {
     setViewStack(prev => {
+      // If already on this view, don't push
+      if (prev[prev.length - 1] === view) return prev;
+      
       const nextStack = [...prev, view];
       window.history.pushState({ viewStack: nextStack }, '', `#${view}`);
       return nextStack;
@@ -71,7 +75,12 @@ function AppContent() {
   };
 
   const goBack = () => {
-    window.history.back();
+    if (viewStack.length > 1) {
+      window.history.back();
+    } else {
+      // Just in case, ensure we are at home
+      navigateTo('home');
+    }
   };
 
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
@@ -318,6 +327,14 @@ function AppContent() {
             )}
             {currentView === 'help' && <Help />}
             {currentView === 'admin' && <AdminPortal setView={navigateTo} />}
+            {currentView === 'orders' && (
+              <Orders 
+                products={products} 
+                onOpenProduct={openProduct} 
+                onAddToCart={addToCart}
+                setView={navigateTo}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>
