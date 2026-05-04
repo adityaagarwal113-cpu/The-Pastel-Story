@@ -42,7 +42,8 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const [isEditingProduct, setIsEditingProduct] = useState<Product | null>(null);
   const [isEditingReview, setIsEditingReview] = useState<any | null>(null);
   const [editingTracking, setEditingTracking] = useState<{ id: string, trackingId: string, trackingLink: string } | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState(0);
+  const isUploading = pendingUploads > 0;
 
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
 
@@ -55,9 +56,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const storageRef = ref(storage, `uploads/${Date.now()}_${safeName}`);
       const snapshot = await uploadBytes(storageRef, file);
-      
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      return downloadURL;
+      return await getDownloadURL(snapshot.ref);
     } catch (error) {
       console.error('Upload failed:', error);
       throw error;
@@ -706,14 +705,14 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
-                            setIsUploading(true);
+                            setPendingUploads(prev => prev + 1);
                             try {
                               const url = await handleFileUpload(file);
                               setSiteConfig((prev: any) => ({ ...prev, heroImage: url }));
                             } catch (e) {
                               alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
                             } finally {
-                              setIsUploading(false);
+                              setPendingUploads(prev => Math.max(0, prev - 1));
                             }
                           }
                         }}
@@ -726,14 +725,14 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            setIsUploading(true);
+                            setPendingUploads(prev => prev + 1);
                             try {
                               const url = await handleFileUpload(file);
                               setSiteConfig((prev: any) => ({ ...prev, heroImage: url }));
                             } catch (e) {
                               alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
                             } finally {
-                              setIsUploading(false);
+                              setPendingUploads(prev => Math.max(0, prev - 1));
                             }
                           }
                         }}
@@ -801,21 +800,39 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           multiple
                           className="hidden" 
                           disabled={isUploading}
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              setIsUploading(true);
-                              try {
-                                const urls = await Promise.all(files.map(file => handleFileUpload(file)));
-                                setSiteConfig((prev: any) => ({
-                                  ...prev,
-                                  galleryImages: [...(prev.galleryImages || []), ...urls]
-                                }));
-                              } catch (err) {
-                                alert('Error uploading some images. Please try again.');
-                              } finally {
-                                setIsUploading(false);
-                              }
+                              const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                              
+                              // Add previews immediately
+                              setSiteConfig((prev: any) => ({
+                                ...prev,
+                                galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                              }));
+
+                              setPendingUploads(prev => prev + newUploads.length);
+                              
+                              // Start uploads in parallel
+                              newUploads.forEach(async (u) => {
+                                try {
+                                  const url = await handleFileUpload(u.file);
+                                  setSiteConfig((prev: any) => {
+                                    const nextGallery = [...(prev.galleryImages || [])];
+                                    const idx = nextGallery.indexOf(u.preview);
+                                    if (idx !== -1) nextGallery[idx] = url;
+                                    return { ...prev, galleryImages: nextGallery };
+                                  });
+                                } catch (err) {
+                                  console.error('Gallery upload failed', err);
+                                  setSiteConfig((prev: any) => ({
+                                    ...prev,
+                                    galleryImages: (prev.galleryImages || []).filter((img: string) => img !== u.preview)
+                                  }));
+                                } finally {
+                                  setPendingUploads(prev => Math.max(0, prev - 1));
+                                }
+                              });
                             }
                           }}
                         />
@@ -823,24 +840,40 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                     <div 
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={async (e) => {
+                      onDrop={(e) => {
                         e.preventDefault();
                         const rawFiles = Array.from(e.dataTransfer.files);
                         const files = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
                         if (files.length === 0) return;
                         
-                        setIsUploading(true);
-                        try {
-                          const urls = await Promise.all(files.map(file => handleFileUpload(file)));
-                          setSiteConfig((prev: any) => ({
-                            ...prev,
-                            galleryImages: [...(prev.galleryImages || []), ...urls]
-                          }));
-                        } catch (err) {
-                          alert('Error uploading some images.');
-                        } finally {
-                          setIsUploading(false);
-                        }
+                        const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                        
+                        // Add previews immediately
+                        setSiteConfig((prev: any) => ({
+                          ...prev,
+                          galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                        }));
+
+                        setPendingUploads(prev => prev + newUploads.length);
+                        newUploads.forEach(async (u) => {
+                          try {
+                            const url = await handleFileUpload(u.file);
+                            setSiteConfig((prev: any) => {
+                              const nextGallery = [...(prev.galleryImages || [])];
+                              const idx = nextGallery.indexOf(u.preview);
+                              if (idx !== -1) nextGallery[idx] = url;
+                              return { ...prev, galleryImages: nextGallery };
+                            });
+                          } catch (err) {
+                            console.error('Gallery drop upload failed', err);
+                            setSiteConfig((prev: any) => ({
+                              ...prev,
+                              galleryImages: (prev.galleryImages || []).filter((img: string) => img !== u.preview)
+                            }));
+                          } finally {
+                            setPendingUploads(prev => Math.max(0, prev - 1));
+                          }
+                        });
                       }}
                       className={`p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center ${isUploading ? 'opacity-50' : ''}`}
                     >
@@ -911,14 +944,14 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
-                            setIsUploading(true);
+                            setPendingUploads(prev => prev + 1);
                             try {
                               const url = await handleFileUpload(file);
                               setSiteConfig((prev: any) => ({ ...prev, aboutImage: url }));
                             } catch (e) {
                               alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
                             } finally {
-                              setIsUploading(false);
+                              setPendingUploads(prev => Math.max(0, prev - 1));
                             }
                           }
                         }}
@@ -930,14 +963,14 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              setIsUploading(true);
+                              setPendingUploads(prev => prev + 1);
                               try {
                                 const url = await handleFileUpload(file);
                                 setSiteConfig((prev: any) => ({ ...prev, aboutImage: url }));
                               } catch (e) {
                                 alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
                               } finally {
-                                setIsUploading(false);
+                                setPendingUploads(prev => Math.max(0, prev - 1));
                               }
                             }
                           }}
@@ -1255,21 +1288,44 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           multiple 
                           accept="image/*"
                           disabled={isUploading}
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              setIsUploading(true);
-                              try {
-                                const urls = await Promise.all(files.map(file => handleFileUpload(file)));
-                                setIsEditingProduct(prev => prev ? {
-                                  ...prev,
-                                  imgs: [...prev.imgs, ...urls]
-                                } : null);
-                              } catch (err) {
-                                alert('Error uploading some images.');
-                              } finally {
-                                setIsUploading(false);
-                              }
+                              const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                              
+                              // Step 1: Add previews immediately for instant feedback
+                              setIsEditingProduct(prev => prev ? {
+                                ...prev,
+                                imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
+                              } : null);
+
+                              setPendingUploads(prev => prev + newUploads.length);
+                              
+                              // Step 2: Upload in parallel and replace local blobs with real URLs
+                              newUploads.forEach(async (u) => {
+                                try {
+                                  const url = await handleFileUpload(u.file);
+                                  setIsEditingProduct(prev => {
+                                    if (!prev) return null;
+                                    const nextImgs = [...prev.imgs];
+                                    const idx = nextImgs.indexOf(u.preview);
+                                    if (idx !== -1) {
+                                      nextImgs[idx] = url;
+                                    } else {
+                                      nextImgs.push(url);
+                                    }
+                                    return { ...prev, imgs: nextImgs };
+                                  });
+                                } catch (err) {
+                                  console.error('Product image upload failed', err);
+                                  setIsEditingProduct(prev => prev ? {
+                                    ...prev,
+                                    imgs: prev.imgs.filter(img => img !== u.preview)
+                                  } : null);
+                                } finally {
+                                  setPendingUploads(prev => Math.max(0, prev - 1));
+                                }
+                              });
                             }
                           }}
                         />
@@ -1277,24 +1333,40 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                     <div 
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={async (e) => {
+                      onDrop={(e) => {
                         e.preventDefault();
                         const rawFiles = Array.from(e.dataTransfer.files);
                         const files = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
                         if (files.length === 0) return;
 
-                        setIsUploading(true);
-                        try {
-                          const urls = await Promise.all(files.map(file => handleFileUpload(file)));
-                          setIsEditingProduct(prev => prev ? {
-                            ...prev,
-                            imgs: [...prev.imgs, ...urls]
-                          } : null);
-                        } catch (err) {
-                          alert('Error uploading some images.');
-                        } finally {
-                          setIsUploading(false);
-                        }
+                        const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                        
+                        setIsEditingProduct(prev => prev ? {
+                          ...prev,
+                          imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
+                        } : null);
+
+                        setPendingUploads(prev => prev + newUploads.length);
+                        newUploads.forEach(async (u) => {
+                          try {
+                            const url = await handleFileUpload(u.file);
+                            setIsEditingProduct(prev => {
+                              if (!prev) return null;
+                              const nextImgs = [...prev.imgs];
+                              const idx = nextImgs.indexOf(u.preview);
+                              if (idx !== -1) nextImgs[idx] = url;
+                              return { ...prev, imgs: nextImgs };
+                            });
+                          } catch (err) {
+                            console.error('Product image drop failed', err);
+                            setIsEditingProduct(prev => prev ? {
+                              ...prev,
+                              imgs: prev.imgs.filter(img => img !== u.preview)
+                            } : null);
+                          } finally {
+                            setPendingUploads(prev => Math.max(0, prev - 1));
+                          }
+                        });
                       }}
                       className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center ${isUploading ? 'opacity-50' : ''}`}
                     >

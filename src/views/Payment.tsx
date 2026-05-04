@@ -98,8 +98,8 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
       (async () => {
         try {
           const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
-          await uploadBytes(storageRef, proofFile);
-          const downloadUrl = await getDownloadURL(storageRef);
+          const snapshot = await uploadBytes(storageRef, proofFile);
+          const downloadUrl = await getDownloadURL(snapshot.ref);
 
           await updateDoc(orderRef, { 
             paymentProof: downloadUrl,
