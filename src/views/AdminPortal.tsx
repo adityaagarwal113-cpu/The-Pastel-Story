@@ -12,7 +12,6 @@ import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { sendEmail, getShippingConfirmationHtml } from '../services/emailService';
 
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const { user } = useAuth();
@@ -149,17 +148,6 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
         const trackingId = `PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         updates.trackingId = trackingId;
         updates.trackingLink = `https://www.google.com/search?q=${trackingId}`;
-        
-        // Real Email sending via Resend API
-        if (currentOrder?.userEmail) {
-          await sendEmail({
-            to: currentOrder.userEmail,
-            subject: `Your Parcel is Shipped! Order: ${currentOrder.orderId} | Pastel Story`,
-            html: getShippingConfirmationHtml(currentOrder.orderId, currentOrder.userName, trackingId, updates.trackingLink)
-          });
-        }
-        
-        console.log(`[MAILER] Shipping email triggered for: ${currentOrder?.userEmail || 'no-email@found.com'}`);
       }
 
       await updateDoc(doc(db, 'orders', orderId), updates);

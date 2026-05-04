@@ -16,7 +16,6 @@ import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/fi
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../contexts/AuthContext';
-import { sendEmail, getOrderConfirmationHtml } from '../services/emailService';
 
 interface PaymentProps {
   checkoutData: {
@@ -96,28 +95,18 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
       setIsSubmitting(false);
 
       // 3. BACKGROUND PROCESSING: Upload proof while success screen is shown
-      // This runs asynchronously without blocking the UI
       (async () => {
         try {
           const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
-          const uploadTask = await uploadBytes(storageRef, proofFile);
-          const downloadUrl = await getDownloadURL(uploadTask.ref);
+          await uploadBytes(storageRef, proofFile);
+          const downloadUrl = await getDownloadURL(storageRef);
 
           await updateDoc(orderRef, { 
             paymentProof: downloadUrl,
             status: 'Proof Uploaded'
           });
-
-          if (user.email) {
-            sendEmail({
-              to: user.email,
-              subject: `Order Received: ${orderId} | Pastel Story`,
-              html: getOrderConfirmationHtml(orderId, checkoutData.name, checkoutData.total)
-            }).catch(e => console.warn("Background email failed:", e));
-          }
         } catch (bgError) {
           console.error("Background upload failed:", bgError);
-          // Update status so admin knows the proof upload failed
           await updateDoc(orderRef, { 
             paymentProof: 'Upload Failed - Manual Check Needed',
             status: 'Upload Failed'
