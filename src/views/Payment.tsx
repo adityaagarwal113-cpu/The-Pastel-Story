@@ -17,7 +17,6 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../contexts/AuthContext';
 import { sendEmail, getOrderConfirmationHtml } from '../services/emailService';
-import { optimizeImageForUpload } from '../lib/image-optimization';
 
 interface PaymentProps {
   checkoutData: {
@@ -68,17 +67,14 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
     if (!user || !proofFile) return;
 
     setIsSubmitting(true);
-    setSubmissionStatus('Optimizing image...');
+    setSubmissionStatus('Confirming Order...');
+    
     try {
       const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      
-      // 1. Quick Image Compression (Lowers upload payload significantly)
-      const { blob } = await optimizeImageForUpload(proofFile);
-      
-      setSubmissionStatus('Generating secure order...');
-      // 2. Create Order Document immediately (Sync/Database check)
       const orderRef = doc(db, 'orders', orderId);
       
+      // 1. Create Order Document immediately
+      // We do this first to ensure there's a record before showing success
       await setDoc(orderRef, {
         orderId,
         userId: user.uid,
@@ -94,35 +90,45 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
         timestamp: serverTimestamp(),
       });
 
-      setSubmissionStatus('Uploading payment proof...');
-      // 3. Upload Compressed Screenshot to Storage (Faster than raw)
-      const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
-      const uploadTask = await uploadBytes(storageRef, blob);
-      const downloadUrl = await getDownloadURL(uploadTask.ref);
-
-      setSubmissionStatus('Finalizing order...');
-      // 4. Update Firestore with real proof URL
-      await updateDoc(orderRef, { paymentProof: downloadUrl });
-
-      // 5. Fire and Forget Email (Don't await to prevent UI hang)
-      if (user.email) {
-        sendEmail({
-          to: user.email,
-          subject: `Order Received: ${orderId} | Pastel Story`,
-          html: getOrderConfirmationHtml(orderId, checkoutData.name, checkoutData.total)
-        }).catch(e => console.warn("Background email send failed:", e));
-      }
-
-      setSubmissionStatus('Success!');
-      // Success State Transition
+      // 2. IMMEDIATE FEEDBACK: Show success screen now
       setOrderSuccess(orderId);
       onClearCart();
-    } catch (error) {
-      console.error("Order completion error:", error);
-      handleFirestoreError(error, OperationType.WRITE, 'orders');
-    } finally {
       setIsSubmitting(false);
-      setSubmissionStatus('');
+
+      // 3. BACKGROUND PROCESSING: Upload proof while success screen is shown
+      // This runs asynchronously without blocking the UI
+      (async () => {
+        try {
+          const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
+          const uploadTask = await uploadBytes(storageRef, proofFile);
+          const downloadUrl = await getDownloadURL(uploadTask.ref);
+
+          await updateDoc(orderRef, { 
+            paymentProof: downloadUrl,
+            status: 'Proof Uploaded'
+          });
+
+          if (user.email) {
+            sendEmail({
+              to: user.email,
+              subject: `Order Received: ${orderId} | Pastel Story`,
+              html: getOrderConfirmationHtml(orderId, checkoutData.name, checkoutData.total)
+            }).catch(e => console.warn("Background email failed:", e));
+          }
+        } catch (bgError) {
+          console.error("Background upload failed:", bgError);
+          // Update status so admin knows the proof upload failed
+          await updateDoc(orderRef, { 
+            paymentProof: 'Upload Failed - Manual Check Needed',
+            status: 'Upload Failed'
+          }).catch(() => {});
+        }
+      })();
+
+    } catch (error) {
+      console.error("Order initiation error:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'orders');
+      setIsSubmitting(false);
     }
   };
 

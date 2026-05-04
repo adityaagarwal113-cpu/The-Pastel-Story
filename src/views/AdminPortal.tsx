@@ -12,7 +12,6 @@ import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { optimizeImageForUpload } from '../lib/image-optimization';
 import { sendEmail, getShippingConfirmationHtml } from '../services/emailService';
 
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
@@ -52,18 +51,12 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
   const handleFileUpload = async (file: File): Promise<string> => {
     try {
-      setUploadProgress('Optimizing...');
-      // 1. Compress Image
-      const { blob } = await optimizeImageForUpload(file);
-      
       setUploadProgress('Uploading...');
-      // 2. Upload to Storage
-      // Sanitize filename to avoid path traversal or weird ref issues
+      // Upload directly without compression as requested for speed
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const storageRef = ref(storage, `uploads/${Date.now()}_${safeName}`);
-      const snapshot = await uploadBytes(storageRef, blob);
+      const snapshot = await uploadBytes(storageRef, file);
       
-      // 3. Get Download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
       return downloadURL;
     } catch (error) {
