@@ -741,7 +741,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       {isUploading ? (
                         <div className="flex flex-col items-center">
                           <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
-                          <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">{uploadProgress || 'Processing...'}</p>
+                          <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">{uploadProgress || 'Uploading...'}</p>
                         </div>
                       ) : (
                           <>
@@ -1300,7 +1300,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     >
                       <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
                       <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">
-                        {isUploading ? 'Optimizing Images...' : 'Drag & Drop Images Here'}
+                        {isUploading ? 'Uploading Images...' : 'Drag & Drop Images Here'}
                       </p>
                     </div>
                   </div>

@@ -145,9 +145,9 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
           </div>
           <h2 className="font-serif text-4xl text-dark mb-4 italic">Order Placed!</h2>
           <p className="text-light text-sm mb-2 uppercase tracking-widest">Order ID: <span className="text-gold font-bold">{orderSuccess}</span></p>
-          <p className="text-[0.6rem] text-gold font-bold uppercase tracking-[0.2em] mb-8">Confirmation Email Sent</p>
+          <div className="h-4" /> {/* Spacer */}
           <p className="text-mid text-sm mb-10 leading-relaxed opacity-70">
-            Your pieces are now being curated! We've received your payment proof and will finish processing your order shortly. A copy of your order details has been sent to your email.
+            Your pieces are now being curated! We've received your payment proof and will finish processing your order shortly. Please save your Order ID for tracking.
           </p>
           <button 
             onClick={() => setView('shop')}
