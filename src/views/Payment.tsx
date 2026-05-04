@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { View } from '../types';
 import { db, storage } from '../lib/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,6 +35,7 @@ interface PaymentProps {
 export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<string>('');
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
@@ -67,21 +68,15 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
     if (!user || !proofFile) return;
 
     setIsSubmitting(true);
+    setSubmissionStatus('Optimizing image...');
     try {
       const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
       
-      // 1. Upload Payment Proof to Storage
-      let proofUrl = 'Manual Verification Required';
-      try {
-        const { blob } = await optimizeImageForUpload(proofFile);
-        const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
-        const snapshot = await uploadBytes(storageRef, blob);
-        proofUrl = await getDownloadURL(snapshot.ref);
-      } catch (uploadErr) {
-        console.error("Proof upload failed, continuing with fallback status:", uploadErr);
-      }
-
-      // 2. Create Order Document using orderId as Doc ID
+      // 1. Quick Image Compression (Lowers upload payload significantly)
+      const { blob } = await optimizeImageForUpload(proofFile);
+      
+      setSubmissionStatus('Generating secure order...');
+      // 2. Create Order Document immediately (Sync/Database check)
       const orderRef = doc(db, 'orders', orderId);
       
       await setDoc(orderRef, {
@@ -95,25 +90,39 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
         items: checkoutData.items,
         total: checkoutData.total,
         status: 'Order Placed',
-        paymentProof: proofUrl,
+        paymentProof: 'Processing Image...',
         timestamp: serverTimestamp(),
       });
 
-      // Send confirmation email
+      setSubmissionStatus('Uploading payment proof...');
+      // 3. Upload Compressed Screenshot to Storage (Faster than raw)
+      const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
+      const uploadTask = await uploadBytes(storageRef, blob);
+      const downloadUrl = await getDownloadURL(uploadTask.ref);
+
+      setSubmissionStatus('Finalizing order...');
+      // 4. Update Firestore with real proof URL
+      await updateDoc(orderRef, { paymentProof: downloadUrl });
+
+      // 5. Fire and Forget Email (Don't await to prevent UI hang)
       if (user.email) {
-        await sendEmail({
+        sendEmail({
           to: user.email,
-          subject: `Order Confirmed: ${orderId} | Pastel Story`,
+          subject: `Order Received: ${orderId} | Pastel Story`,
           html: getOrderConfirmationHtml(orderId, checkoutData.name, checkoutData.total)
-        });
+        }).catch(e => console.warn("Background email send failed:", e));
       }
 
+      setSubmissionStatus('Success!');
+      // Success State Transition
       setOrderSuccess(orderId);
       onClearCart();
     } catch (error) {
+      console.error("Order completion error:", error);
       handleFirestoreError(error, OperationType.WRITE, 'orders');
     } finally {
       setIsSubmitting(false);
+      setSubmissionStatus('');
     }
   };
 
@@ -299,12 +308,15 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                   <button 
                     disabled={isSubmitting || !proofFile}
                     onClick={handleConfirmOrder}
-                    className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-30 disabled:grayscale transition-all"
+                    className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 disabled:opacity-30 disabled:grayscale transition-all"
                   >
                     {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[0.5rem] tracking-widest">{submissionStatus}</span>
+                      </>
                     ) : (
-                      <>Place Order Now</>
+                      <span>Place Order Now</span>
                     )}
                   </button>
                 </div>

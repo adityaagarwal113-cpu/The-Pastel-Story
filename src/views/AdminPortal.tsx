@@ -48,14 +48,19 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
 
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+
   const handleFileUpload = async (file: File): Promise<string> => {
-    setIsUploading(true);
     try {
+      setUploadProgress('Optimizing...');
       // 1. Compress Image
       const { blob } = await optimizeImageForUpload(file);
       
+      setUploadProgress('Uploading...');
       // 2. Upload to Storage
-      const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+      // Sanitize filename to avoid path traversal or weird ref issues
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storageRef = ref(storage, `uploads/${Date.now()}_${safeName}`);
       const snapshot = await uploadBytes(storageRef, blob);
       
       // 3. Get Download URL
@@ -63,10 +68,9 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       return downloadURL;
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Failed to upload image. Please try again.');
       throw error;
     } finally {
-      setIsUploading(false);
+      setUploadProgress('');
     }
   };
 
@@ -717,14 +721,19 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       )}
                       <div 
                         onDragOver={(e) => e.preventDefault()}
-                        onDrop={async (e) => {
+                         onDrop={async (e) => {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
+                            setIsUploading(true);
                             try {
                               const url = await handleFileUpload(file);
-                              setSiteConfig({...siteConfig, heroImage: url});
-                            } catch (e) {}
+                              setSiteConfig((prev: any) => ({ ...prev, heroImage: url }));
+                            } catch (e) {
+                              alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
+                            } finally {
+                              setIsUploading(false);
+                            }
                           }
                         }}
                         className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
@@ -734,21 +743,26 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           className="absolute inset-0 opacity-0 cursor-pointer" 
                           disabled={isUploading}
                           onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                const url = await handleFileUpload(file);
-                                setSiteConfig({...siteConfig, heroImage: url});
-                              } catch (e) {}
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsUploading(true);
+                            try {
+                              const url = await handleFileUpload(file);
+                              setSiteConfig((prev: any) => ({ ...prev, heroImage: url }));
+                            } catch (e) {
+                              alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
+                            } finally {
+                              setIsUploading(false);
                             }
-                          }}
-                        />
-                        {isUploading ? (
-                          <div className="flex flex-col items-center">
-                            <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
-                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Optimizing & Uploading...</p>
-                          </div>
-                        ) : (
+                          }
+                        }}
+                      />
+                      {isUploading ? (
+                        <div className="flex flex-col items-center">
+                          <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
+                          <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">{uploadProgress || 'Processing...'}</p>
+                        </div>
+                      ) : (
                           <>
                             <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
                             <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Drag or Click to Upload Hero Image</p>
@@ -809,14 +823,17 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           onChange={async (e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              for (const file of files) {
-                                try {
-                                  const url = await handleFileUpload(file);
-                                  setSiteConfig((prev: any) => ({
-                                    ...prev,
-                                    galleryImages: [...(prev.galleryImages || []), url]
-                                  }));
-                                } catch (e) {}
+                              setIsUploading(true);
+                              try {
+                                const urls = await Promise.all(files.map(file => handleFileUpload(file)));
+                                setSiteConfig((prev: any) => ({
+                                  ...prev,
+                                  galleryImages: [...(prev.galleryImages || []), ...urls]
+                                }));
+                              } catch (err) {
+                                alert('Error uploading some images. Please try again.');
+                              } finally {
+                                setIsUploading(false);
                               }
                             }
                           }}
@@ -827,17 +844,21 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={async (e) => {
                         e.preventDefault();
-                        const files = Array.from(e.dataTransfer.files) as File[];
-                        for (const file of files) {
-                          if (file.type.startsWith('image/')) {
-                            try {
-                              const url = await handleFileUpload(file);
-                              setSiteConfig((prev: any) => ({
-                                ...prev,
-                                galleryImages: [...(prev.galleryImages || []), url]
-                              }));
-                            } catch (e) {}
-                          }
+                        const rawFiles = Array.from(e.dataTransfer.files);
+                        const files = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
+                        if (files.length === 0) return;
+                        
+                        setIsUploading(true);
+                        try {
+                          const urls = await Promise.all(files.map(file => handleFileUpload(file)));
+                          setSiteConfig((prev: any) => ({
+                            ...prev,
+                            galleryImages: [...(prev.galleryImages || []), ...urls]
+                          }));
+                        } catch (err) {
+                          alert('Error uploading some images.');
+                        } finally {
+                          setIsUploading(false);
                         }
                       }}
                       className={`p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center ${isUploading ? 'opacity-50' : ''}`}
@@ -909,10 +930,15 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
+                            setIsUploading(true);
                             try {
                               const url = await handleFileUpload(file);
-                              setSiteConfig({...siteConfig, aboutImage: url});
-                            } catch (e) {}
+                              setSiteConfig((prev: any) => ({ ...prev, aboutImage: url }));
+                            } catch (e) {
+                              alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
+                            } finally {
+                              setIsUploading(false);
+                            }
                           }
                         }}
                         className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
@@ -923,14 +949,24 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
+                              setIsUploading(true);
                               try {
                                 const url = await handleFileUpload(file);
-                                setSiteConfig({...siteConfig, aboutImage: url});
-                              } catch (e) {}
+                                setSiteConfig((prev: any) => ({ ...prev, aboutImage: url }));
+                              } catch (e) {
+                                alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
+                              } finally {
+                                setIsUploading(false);
+                              }
                             }
                           }}
                         />
-                        {siteConfig.aboutImage ? (
+                        {isUploading ? (
+                          <div className="flex flex-col items-center">
+                            <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">{uploadProgress || 'Uploading...'}</p>
+                          </div>
+                        ) : siteConfig.aboutImage ? (
                           <div className="flex flex-col items-center">
                             <img src={siteConfig.aboutImage} className="w-20 h-20 object-cover rounded-lg mb-2" alt="" />
                             <p className="text-micro text-mid">Click to Change</p>
@@ -1035,9 +1071,11 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                   
                   <button 
                     onClick={handleSaveConfig}
-                    className="w-full py-5 bg-dark text-white rounded-2xl font-bold text-[0.7rem] tracking-[0.2em] uppercase shadow-2xl shadow-dark/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                    disabled={isUploading}
+                    className="w-full py-5 bg-dark text-white rounded-2xl font-bold text-[0.7rem] tracking-[0.2em] uppercase shadow-2xl shadow-dark/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   >
-                    <Save className="w-5 h-5" /> Save Site Config
+                    {isUploading ? <Clock className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    {isUploading ? 'Uploading Assets...' : 'Save Site Config'}
                   </button>
                 </div>
               </div>
@@ -1239,14 +1277,17 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           onChange={async (e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              for (const file of files) {
-                                try {
-                                  const url = await handleFileUpload(file);
-                                  setIsEditingProduct(prev => prev ? {
-                                    ...prev,
-                                    imgs: [...prev.imgs, url]
-                                  } : null);
-                              } catch (e) {}
+                              setIsUploading(true);
+                              try {
+                                const urls = await Promise.all(files.map(file => handleFileUpload(file)));
+                                setIsEditingProduct(prev => prev ? {
+                                  ...prev,
+                                  imgs: [...prev.imgs, ...urls]
+                                } : null);
+                              } catch (err) {
+                                alert('Error uploading some images.');
+                              } finally {
+                                setIsUploading(false);
                               }
                             }
                           }}
@@ -1257,17 +1298,21 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={async (e) => {
                         e.preventDefault();
-                        const files = Array.from(e.dataTransfer.files) as File[];
-                        for (const file of files) {
-                          if (file.type.startsWith('image/')) {
-                            try {
-                              const url = await handleFileUpload(file);
-                              setIsEditingProduct(prev => prev ? {
-                                ...prev,
-                                imgs: [...prev.imgs, url]
-                              } : null);
-                            } catch (e) {}
-                          }
+                        const rawFiles = Array.from(e.dataTransfer.files);
+                        const files = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
+                        if (files.length === 0) return;
+
+                        setIsUploading(true);
+                        try {
+                          const urls = await Promise.all(files.map(file => handleFileUpload(file)));
+                          setIsEditingProduct(prev => prev ? {
+                            ...prev,
+                            imgs: [...prev.imgs, ...urls]
+                          } : null);
+                        } catch (err) {
+                          alert('Error uploading some images.');
+                        } finally {
+                          setIsUploading(false);
                         }
                       }}
                       className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center ${isUploading ? 'opacity-50' : ''}`}
@@ -1306,9 +1351,10 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
                   <button 
                     onClick={() => handleSaveProduct(isEditingProduct)}
-                    className="w-full py-5 bg-gold text-white rounded-2xl font-bold text-[0.7rem] tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 mt-4"
+                    disabled={isUploading}
+                    className="w-full py-5 bg-gold text-white rounded-2xl font-bold text-[0.7rem] tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 mt-4 disabled:opacity-50"
                   >
-                    Save Product Changes
+                    {isUploading ? 'Waiting for uploads...' : 'Save Product Changes'}
                   </button>
                 </div>
               </div>

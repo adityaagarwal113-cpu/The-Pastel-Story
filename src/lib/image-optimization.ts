@@ -71,8 +71,8 @@ export async function compressImage(
  * Convenience function to process an image and return both the blob and a preview URL.
  */
 export async function optimizeImageForUpload(file: File): Promise<{ blob: Blob; previewUrl: string }> {
-  // Balanced resolution for mobile/laptop: 1200px max dimension is usually plenty for web display
-  const compressedBlob = await compressImage(file, 1200, 1200, 0.7);
+  // More aggressive compression for speed: 1000px max dimension, 0.6 quality
+  const compressedBlob = await compressImage(file, 1000, 1000, 0.6);
   const previewUrl = URL.createObjectURL(compressedBlob);
   return { blob: compressedBlob, previewUrl };
 }
