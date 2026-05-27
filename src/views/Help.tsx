@@ -23,16 +23,24 @@ export function Help({ siteConfig }: { siteConfig: any }) {
 
       <div className="max-w-3xl mx-auto px-4 py-20">
          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-20">
-            <a href={`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`} target="_blank" className="p-6 bg-cream/50 rounded-2xl border border-gold/10 hover:border-gold transition-all text-center space-y-3">
-               <MessageCircle className="w-6 h-6 text-gold mx-auto" />
+            <a href={`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`} target="_blank" className="p-6 bg-cream/50 rounded-2xl border border-gold/10 hover:border-gold hover:shadow-md transition-all text-center space-y-3 group">
+               <MessageCircle className="w-6 h-6 text-gold mx-auto group-hover:scale-110 transition-transform" />
                <p className="text-[0.6rem] uppercase tracking-widest font-bold">WhatsApp</p>
                <p className="text-xs text-mid">Chat with us</p>
             </a>
-            <div className="p-6 bg-cream/50 rounded-2xl border border-gold/10 text-center space-y-3">
-               <Mail className="w-6 h-6 text-gold mx-auto" />
-               <p className="text-[0.6rem] uppercase tracking-widest font-bold">Email</p>
-               <p className="text-xs text-mid">{siteConfig.contactEmail || 'support@pastel.com'}</p>
-            </div>
+            <a 
+              href={`mailto:${siteConfig.contactEmail || 'support@pastelstory.com'}?subject=Support%20Inquiry%20-%20The%20Pastel%20Story`}
+              className="p-6 bg-cream/50 rounded-2xl border border-gold/10 hover:border-gold hover:shadow-md transition-all text-center space-y-3 group flex flex-col justify-between items-center"
+            >
+               <div className="space-y-3 w-full">
+                  <Mail className="w-6 h-6 text-gold mx-auto group-hover:scale-110 transition-transform" />
+                  <p className="text-[0.6rem] uppercase tracking-widest font-bold">Email Support</p>
+                  <p className="text-xs text-mid truncate max-w-full">{siteConfig.contactEmail || 'support@pastelstory.com'}</p>
+               </div>
+               <span className="mt-1 inline-block text-[0.55rem] font-bold text-gold uppercase tracking-widest bg-white group-hover:bg-gold group-hover:text-white px-3 py-1 rounded-full shadow-sm transition-all border border-gold/5">
+                  Send Email
+               </span>
+            </a>
             <div className="p-6 bg-cream/50 rounded-2xl border border-gold/10 text-center space-y-3">
                <Clock className="w-6 h-6 text-gold mx-auto" />
                <p className="text-[0.6rem] uppercase tracking-widest font-bold">Response Time</p>
@@ -76,14 +84,22 @@ export function Help({ siteConfig }: { siteConfig: any }) {
             <div className="relative z-10 space-y-6">
               <h3 className="font-serif text-3xl italic">Still have questions?</h3>
               <p className="max-w-md text-white/60 text-sm leading-relaxed">
-                If you haven't found what you're looking for, feel free to drop us a message on WhatsApp. We're here to help you find your perfect fit.
+                If you haven't found what you're looking for, feel free to start a live support chat on WhatsApp or send us an email inquiry.
               </p>
-              <button 
-                onClick={() => window.open(`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`, '_blank')}
-                className="bg-gold text-white px-8 py-4 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105 transition-all shadow-xl shadow-gold/20"
-              >
-                Contact Support
-              </button>
+              <div className="flex flex-wrap gap-4 pt-2">
+                <button 
+                  onClick={() => window.open(`https://wa.me/${(siteConfig.contactWhatsApp || '918444929090').replace(/\D/g, '')}`, '_blank')}
+                  className="bg-gold text-white px-8 py-4 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105 transition-all shadow-xl shadow-gold/20 flex items-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" /> WhatsApp Support
+                </button>
+                <a 
+                  href={`mailto:${siteConfig.contactEmail || 'support@pastelstory.com'}?subject=Support%20Inquiry%20-%20The%20Pastel%20Story`}
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-8 py-4 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <Mail className="w-4 h-4" /> Email Support
+                </a>
+              </div>
             </div>
          </div>
       </div>

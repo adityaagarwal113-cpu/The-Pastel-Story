@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product } from '../types';
 import { DEFAULT_PRODUCTS } from '../constants';
@@ -38,10 +38,31 @@ export function useSiteData() {
 
       // Fallback: Real-time products from Firestore
       unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
-        if (snapshot.empty) {
+        const loadedProducts = snapshot.docs.map(doc => ({ ...doc.data() } as Product));
+        const hasOldProducts = snapshot.size !== 50 || loadedProducts.some(p => p.id === 1 && p.name === 'Blush Rose Co-ord Set');
+
+        if (snapshot.empty || hasOldProducts) {
+          // Instantly show default products to avoid any latency or flicker
           setProducts(DEFAULT_PRODUCTS);
+          
+          const syncDatabase = async () => {
+            try {
+              // Delete existing products
+              for (const docSnap of snapshot.docs) {
+                await deleteDoc(doc(db, 'products', docSnap.id));
+              }
+              // Set the 50 new ones
+              for (const p of DEFAULT_PRODUCTS) {
+                await setDoc(doc(db, 'products', p.id.toString()), p);
+              }
+              console.log('Successfully synchronized 50 beautiful default products with Firestore.');
+            } catch (err) {
+              console.error('Error auto-syncing DEFAULT_PRODUCTS:', err);
+            }
+          };
+          syncDatabase();
         } else {
-          setProducts(snapshot.docs.map(doc => ({ ...doc.data() } as Product)));
+          setProducts(loadedProducts);
         }
         setUsingContentful(false);
         setLoading(false);

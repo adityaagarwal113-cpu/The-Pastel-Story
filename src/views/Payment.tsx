@@ -62,6 +62,8 @@ interface PaymentProps {
     pincode: string;
     total: number;
     items: string;
+    discountUsed?: string;
+    discountAmount?: number;
   };
   onClearCart: () => void;
   setView: (view: View) => void;
@@ -111,6 +113,8 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
         pincode: checkoutData.pincode,
         items: checkoutData.items,
         total: checkoutData.total,
+        discountUsed: checkoutData.discountUsed || '',
+        discountAmount: checkoutData.discountAmount || 0,
         status: 'Order Placed',
         paymentProof: downloadUrl,
         timestamp: serverTimestamp(),
@@ -200,6 +204,11 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                   <div>
                     <h2 className="text-[0.6rem] uppercase tracking-[0.3em] font-bold text-gold mb-2">Total Amount Due</h2>
                     <p className="font-serif text-4xl font-bold text-dark italic">₹{checkoutData.total.toLocaleString('en-IN')}</p>
+                    {checkoutData.discountUsed && (
+                      <p className="text-xs text-green-600 font-bold mt-2 flex items-center gap-1 justify-center md:justify-start">
+                        ✨ Applied code {checkoutData.discountUsed} (saved ₹{checkoutData.discountAmount?.toLocaleString('en-IN')})
+                      </p>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-1 gap-3">

@@ -41,10 +41,55 @@ export function Cart({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; percent: number; amount: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
   const selectedItems = useMemo(() => cart.filter(i => i.selected), [cart]);
   const subtotal = useMemo(() => selectedItems.reduce((acc, item) => acc + item.price * item.qty, 0), [selectedItems]);
   const shipping = subtotal > 0 && subtotal >= 999 ? 0 : (subtotal > 0 ? 99 : 0);
-  const total = subtotal + shipping;
+  
+  const discountAmount = useMemo(() => {
+    if (!appliedDiscount) return 0;
+    return appliedDiscount.amount;
+  }, [appliedDiscount]);
+
+  const total = useMemo(() => {
+    return Math.max(0, subtotal - discountAmount + shipping);
+  }, [subtotal, discountAmount, shipping]);
+
+  const handleApplyCoupon = (code: string) => {
+    const cleanCode = code.trim().toUpperCase();
+    if (!cleanCode) return;
+    
+    if (cleanCode === 'PASTEL10') {
+      const amt = Math.round(subtotal * 0.10);
+      setAppliedDiscount({ code: 'PASTEL10', percent: 10, amount: amt });
+      setCouponError(null);
+    } else if (cleanCode === 'ELEGANT20') {
+      if (subtotal < 3000) {
+        setCouponError('Coupon ELEGANT20 is valid on orders above ₹3,000 only');
+        setAppliedDiscount(null);
+      } else {
+        const amt = Math.round(subtotal * 0.20);
+        setAppliedDiscount({ code: 'ELEGANT20', percent: 20, amount: amt });
+        setCouponError(null);
+      }
+    } else if (cleanCode === 'FIRST15') {
+      const amt = Math.round(subtotal * 0.15);
+      setAppliedDiscount({ code: 'FIRST15', percent: 15, amount: amt });
+      setCouponError(null);
+    } else {
+      setCouponError('Invalid coupon code. Try PASTEL10, FIRST15, or ELEGANT20 for a boutique discount!');
+      setAppliedDiscount(null);
+    }
+  };
+  
+  const handleRemoveCoupon = () => {
+    setAppliedDiscount(null);
+    setCouponCode('');
+    setCouponError(null);
+  };
 
   const handleCheckout = async () => {
     if (!user) {
@@ -67,6 +112,8 @@ export function Cart({
     setCheckoutData({
       ...formData,
       total,
+      discountUsed: appliedDiscount?.code || '',
+      discountAmount,
       items: itemsString
     });
     
@@ -121,24 +168,27 @@ export function Cart({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="relative grid grid-cols-[100px_1fr] md:grid-cols-[140px_1fr] gap-8 group pb-12 border-b border-gold/5"
+                  className="relative grid grid-cols-[28px_100px_1fr] md:grid-cols-[36px_140px_1fr] gap-4 md:gap-8 group pb-12 border-b border-gold/5 items-start"
                 >
-                  <div className="absolute -left-4 top-0 h-full flex flex-col justify-start pt-2">
+                  <div className="h-full flex items-start pt-2 justify-center">
                     <button 
                       onClick={() => onToggleSelection(item.id, item.size, item.customization)}
-                      className={`w-4 h-4 transition-all duration-500 rounded-sm overflow-hidden flex items-center justify-center ${
-                        item.selected ? 'bg-gold border border-gold' : 'border border-gold/20 hover:border-gold/50'
+                      className={`w-5 h-5 transition-all duration-300 rounded border flex items-center justify-center cursor-pointer ${
+                        item.selected 
+                          ? 'bg-gold border-gold text-white shadow-md scale-105' 
+                          : 'bg-white border-gold/40 hover:border-gold/80'
                       }`}
+                      aria-label={`Select ${item.name}`}
                     >
-                      {item.selected && <span className="text-[8px] text-white font-bold">✓</span>}
+                      {item.selected && <span className="text-[10px] font-bold text-white">✓</span>}
                     </button>
                   </div>
 
                   <div 
                     onClick={() => onEditItem(item)}
-                    className="aspect-[3/4] overflow-hidden bg-[#eeebe7] cursor-pointer"
+                    className="aspect-[3/4] overflow-hidden bg-[#eeebe7] cursor-pointer rounded-lg border border-gold/5 shadow-sm"
                   >
-                    <img src={item.img} className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-1000" alt={item.name} loading="lazy" decoding="async" />
+                    <img src={item.img} className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105" alt={item.name} loading="lazy" decoding="async" />
                   </div>
                   
                   <div className="flex flex-col justify-between">
@@ -217,12 +267,97 @@ export function Cart({
                   <span>Subtotal</span>
                   <span>₹{subtotal.toLocaleString('en-IN')}</span>
                 </div>
+                {appliedDiscount && (
+                  <div className="flex justify-between text-xs tracking-widest uppercase text-green-600 font-bold flex-wrap gap-2">
+                    <span className="flex items-center gap-1.5">
+                      <Gift className="w-3.5 h-3.5 animate-bounce" /> Coupon ({appliedDiscount.code})
+                    </span>
+                    <span>- ₹{appliedDiscount.amount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-xs tracking-widest uppercase text-mid/60">
                   <span>Shipping</span>
                   <span className="text-gold font-bold">{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
                 </div>
+
+                {/* Elegant Promo Code Widget */}
+                <div className="pt-4 border-t border-gold/5 space-y-4">
+                  <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gold">Apply Boutique Promo Code</p>
+                  
+                  {appliedDiscount ? (
+                    <div className="bg-green-50/50 border border-green-100 p-4 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-green-700">
+                        <span className="font-bold">{appliedDiscount.code}</span> applied ({appliedDiscount.percent}% Off)
+                      </div>
+                      <button 
+                        onClick={handleRemoveCoupon}
+                        className="text-red-400 hover:text-red-600 font-bold text-[0.65rem] tracking-wider uppercase transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Voucher Code (e.g. PASTEL10)" 
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value);
+                          setCouponError(null);
+                        }}
+                        className="flex-1 bg-cream/30 border border-gold/10 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-gold transition-all placeholder:text-mid/30 uppercase"
+                      />
+                      <button 
+                        onClick={() => handleApplyCoupon(couponCode)}
+                        className="bg-dark text-white hover:bg-gold px-4 py-2.5 rounded-xl text-[0.6rem] tracking-widest uppercase font-bold transition-all shrink-0"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <p className="text-red-500 text-[0.65rem] italic">{couponError}</p>
+                  )}
+
+                  {!appliedDiscount && (
+                    <div className="space-y-1.5">
+                      <p className="text-[0.55rem] tracking-wider text-mid">Available Shop Promos (click to apply):</p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button 
+                          onClick={() => {
+                            setCouponCode('PASTEL10');
+                            handleApplyCoupon('PASTEL10');
+                          }}
+                          className="px-3 py-1 bg-cream hover:bg-gold hover:text-white border border-gold/15 text-gold text-[0.55rem] font-mono rounded-lg transition-all"
+                        >
+                          PASTEL10 (-10%)
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setCouponCode('FIRST15');
+                            handleApplyCoupon('FIRST15');
+                          }}
+                          className="px-3 py-1 bg-cream hover:bg-gold hover:text-white border border-gold/15 text-gold text-[0.55rem] font-mono rounded-lg transition-all"
+                        >
+                          FIRST15 (-15%)
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setCouponCode('ELEGANT20');
+                            handleApplyCoupon('ELEGANT20');
+                          }}
+                          className="px-3 py-1 bg-cream hover:bg-gold hover:text-white border border-gold/15 text-gold text-[0.55rem] font-mono rounded-lg transition-all"
+                        >
+                          ELEGANT20 (-20%)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 
-                <div className="pt-8 border-t border-gold/5 flex justify-between items-baseline">
+                <div className="pt-6 border-t border-gold/5 flex justify-between items-baseline">
                   <span className="font-serif text-3xl font-light italic">Total</span>
                   <span className="font-serif text-4xl font-bold text-dark">₹{total.toLocaleString('en-IN')}</span>
                 </div>

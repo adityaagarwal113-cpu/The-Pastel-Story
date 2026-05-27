@@ -38,6 +38,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<'relevance' | 'low' | 'high' | 'new'>('relevance');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
@@ -114,18 +115,64 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-micro">
-            <span className="text-light/50 hidden sm:inline">Order by</span>
-            <select 
-              value={sort}
-              onChange={(e) => setSort(e.target.value as any)}
-              className="bg-transparent outline-none cursor-pointer hover:text-gold border-none pr-4 font-bold"
-            >
-              <option value="relevance">Default</option>
-              <option value="low">Price: Low</option>
-              <option value="high">Price: High</option>
-              <option value="new">Newest</option>
-            </select>
+          <div className="relative flex items-center gap-4 text-micro">
+            <span className="text-light/50 hidden sm:inline uppercase tracking-widest text-[10px]">Order by</span>
+            <div className="relative">
+              <button
+                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gold/10 hover:border-gold/30 bg-white/50 backdrop-blur-sm rounded-md font-semibold tracking-wider text-dark hover:text-gold transition-all duration-300 shadow-sm text-xs min-w-[170px] justify-between cursor-pointer"
+              >
+                <span>
+                  {sort === 'relevance' && 'Default'}
+                  {sort === 'new' && 'Newest'}
+                  {sort === 'low' && 'Price: Low to High'}
+                  {sort === 'high' && 'Price: High to Low'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gold transition-transform duration-300 ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {isSortDropdownOpen && (
+                  <>
+                    {/* Fixed click-away backdrop to close the dropdown */}
+                    <div 
+                      className="fixed inset-0 z-40 bg-transparent"
+                      onClick={() => setIsSortDropdownOpen(false)}
+                    />
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-48 bg-white border border-gold/10 rounded-md shadow-lg overflow-hidden z-50 py-1"
+                    >
+                      {[
+                        { value: 'relevance', label: 'Default' },
+                        { value: 'new', label: 'Newest' },
+                        { value: 'low', label: 'Price: Low to High' },
+                        { value: 'high', label: 'Price: High to Low' }
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSort(option.value as any);
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs tracking-wider transition-all duration-200 block cursor-pointer border-l-2 ${
+                            sort === option.value
+                              ? 'bg-cream text-gold border-gold font-bold bg-[#faf8f6]'
+                              : 'text-dark/70 hover:bg-cream/50 hover:text-gold border-transparent hover:pl-5'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>

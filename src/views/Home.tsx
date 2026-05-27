@@ -171,6 +171,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
         </div>
       </div>
 
+
+
       {/* Featured Collection - Luxury Grid */}
       <section className="py-32 px-6 sm:px-12 bg-[#faf8f6]">
         <div className="max-w-[1400px] mx-auto">
@@ -279,6 +281,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
         .animate-marquee {
           animation: marquee 40s linear infinite;
         }
+
+
       `}} />
     </div>
   );

@@ -401,30 +401,39 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
                       exit={{ opacity: 0, x: 10 }}
                       className="space-y-4"
                     >
+                      <p className="text-[0.65rem] italic text-mid text-center mb-2">All measurements are in inches. Designed for relaxed feminine grace.</p>
                       <table className="w-full text-left">
                         <thead>
-                          <tr className="text-[0.55rem] uppercase tracking-widest text-mid font-bold">
+                          <tr className="text-[0.55rem] uppercase tracking-widest text-mid font-bold border-b border-gold/10">
                             <th className="pb-3 px-1">Size</th>
-                            <th className="pb-3 text-center">Waist (in)</th>
-                            <th className="pb-3 text-right">Inseam (in)</th>
+                            <th className="pb-3 text-center">Bust</th>
+                            <th className="pb-3 text-center">Waist</th>
+                            <th className="pb-3 text-center">Hips</th>
+                            <th className="pb-3 text-right">Length</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gold/5">
                           {[
-                            { s: '30', w: '30.0', i: '33.0' },
-                            { s: '32', w: '32.0', i: '33.0' },
-                            { s: '34', w: '34.0', i: '33.0' },
-                            { s: '36', w: '36.0', i: '33.0' },
-                            { s: '38', w: '38.0', i: '33.0' }
+                            { s: 'XS', b: '34"', w: '28"', h: '36"', l: '37"' },
+                            { s: 'S', b: '36"', w: '30"', h: '38"', l: '37.5"' },
+                            { s: 'M', b: '38"', w: '32"', h: '40"', l: '38"' },
+                            { s: 'L', b: '40"', w: '34"', h: '42"', l: '38.5"' },
+                            { s: 'XL', b: '42"', w: '36"', h: '44"', l: '39"' },
+                            { s: 'XXL', b: '44"', w: '38"', h: '46"', l: '39.5"' }
                           ].map(row => (
-                            <tr key={row.s} className="text-sm">
+                            <tr key={row.s} className="text-xs">
                               <td className="py-3 px-1 font-bold text-dark">{row.s}</td>
-                              <td className="py-3 text-center text-mid">{row.w}</td>
-                              <td className="py-3 text-right text-mid">{row.i}</td>
+                              <td className="py-3 text-center text-mid font-mono">{row.b}</td>
+                              <td className="py-3 text-center text-mid font-mono">{row.w}</td>
+                              <td className="py-3 text-center text-mid font-mono">{row.h}</td>
+                              <td className="py-3 text-right text-mid font-mono">{row.l}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      <p className="text-[0.6rem] text-gold text-center pt-2 font-semibold">
+                        ✨ Select "Custom" size on the checkout screen for free personalized custom-fitting!
+                      </p>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -438,15 +447,29 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
                         <div className="flex gap-4">
                           <div className="w-6 h-6 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[0.6rem] font-bold shrink-0">1</div>
                           <div>
-                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Waist</p>
-                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure around the narrowest part of your waistline, keeping the tape a bit loose.</p>
+                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Bust / Chest</p>
+                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure under arms around the fullest part of your bust, keeping the measure horizontal.</p>
                           </div>
                         </div>
                         <div className="flex gap-4">
                           <div className="w-6 h-6 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[0.6rem] font-bold shrink-0">2</div>
                           <div>
-                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Inseam</p>
-                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure from the top of your inner leg to the floor.</p>
+                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Waist Range</p>
+                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure around your natural waist line, which is usually the narrowest section above your hips.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="w-6 h-6 rounded-full bg-gold/10 text-gold flex items-center justify-center text-[0.6rem] font-bold shrink-0">3</div>
+                          <div>
+                            <p className="text-[0.65rem] uppercase font-bold text-dark mb-1">Hips Outline</p>
+                            <p className="text-[0.7rem] text-mid leading-relaxed italic">Measure around the fullest point of your hips (approx. 7 to 8 inches below your waist belt).</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="w-6 h-6 rounded-full bg-gold/10 text-dark flex items-center justify-center text-[0.6rem] font-bold shrink-0">4</div>
+                          <div>
+                            <p className="text-[0.65rem] uppercase font-bold text-gold mb-1">Bespoke Fitting (Recommended)</p>
+                            <p className="text-[0.7rem] text-mid leading-relaxed italic">For a perfect customized touch, select the <strong>Custom</strong> option and fill in your custom heights, sleeve, or hem details.</p>
                           </div>
                         </div>
                       </div>

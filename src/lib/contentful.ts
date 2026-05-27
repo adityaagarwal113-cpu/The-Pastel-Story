@@ -5,6 +5,7 @@ const metaEnv = (import.meta as any).env || {};
 const SPACE_ID = metaEnv.VITE_CONTENTFUL_SPACE_ID || '';
 const ACCESS_TOKEN = metaEnv.VITE_CONTENTFUL_ACCESS_TOKEN || '';
 const ENVIRONMENT = metaEnv.VITE_CONTENTFUL_ENVIRONMENT || 'master';
+const CONTENT_TYPE = metaEnv.VITE_CONTENTFUL_CONTENT_TYPE || 'product';
 
 export const isContentfulConfigured = (): boolean => {
   return !!(SPACE_ID && ACCESS_TOKEN);
@@ -24,7 +25,7 @@ export const getContentfulProducts = async (): Promise<Product[]> => {
     });
 
     const response = await client.getEntries({
-      content_type: 'product',
+      content_type: CONTENT_TYPE,
       order: ['sys.createdAt'],
     });
 
@@ -81,8 +82,30 @@ export const getContentfulProducts = async (): Promise<Product[]> => {
         videoUrl: resolvedVideoUrl,
       };
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch from Contentful, falling back to local dataset.', error);
+    
+    // Check if it's an unknownContentType error
+    const errorsList = error?.details?.errors;
+    if (Array.isArray(errorsList)) {
+      const unknownTypeErr = errorsList.find((e: any) => e.name === 'unknownContentType');
+      if (unknownTypeErr) {
+        const requestedType = unknownTypeErr.value || CONTENT_TYPE;
+        console.warn(`
+[Contentful Configuration Notice]:
+--------------------------------------------------------------------------------------
+The system tried to query Contentful using the Content Type ID: "${requestedType}",
+but this Content Type does not exist in your Space ID "${SPACE_ID}".
+
+TO RESOLVE THIS:
+1. Log into your Contentful dashboard (https://app.contentful.com).
+2. Go to "Content Model" -> "Design Content Type".
+3. Name it "Product" and set the API ID strictly to "${requestedType}".
+4. Alternatively, you can change VITE_CONTENTFUL_CONTENT_TYPE in your environment variables to match your existing Contentful model API ID.
+--------------------------------------------------------------------------------------
+        `);
+      }
+    }
     return [];
   }
 };
