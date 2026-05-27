@@ -51,6 +51,7 @@ export function Navigation({
   const navItems = [
     { label: 'Home', view: 'home' as View, icon: <LayoutGrid className="w-4 h-4" /> },
     { label: 'Shop', view: 'shop' as View, icon: <ShoppingBag className="w-4 h-4" /> },
+    { label: 'Blog', view: 'blog' as View, icon: <LayoutGrid className="w-4 h-4" /> },
     { label: 'Vision', view: 'about' as View, icon: <User className="w-4 h-4" /> },
     { label: 'Cart', view: 'cart' as View, icon: <ShoppingBag className="w-4 h-4" /> },
     { label: 'Wishlist', view: 'wishlist' as View, icon: <Heart className="w-4 h-4" /> },

@@ -4,6 +4,7 @@ import { ArrowRight, Instagram } from 'lucide-react';
 import { Product, View } from '../types';
 import { ProductCard } from '../components/ProductCard';
 import { Footer } from '../components/Footer';
+import { TestimonialsSection } from '../components/TestimonialsSection';
 
 interface HomeProps {
   products: Product[];
@@ -283,6 +284,9 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
           </div>
         </div>
       </section>
+
+      {/* Dynamic Testimonials */}
+      <TestimonialsSection />
 
       <Footer setView={setView} siteConfig={siteConfig} />
 
