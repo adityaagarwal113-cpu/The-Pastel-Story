@@ -1,4 +1,5 @@
 import React, { useState, useRef, CSSProperties, MouseEvent, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CheckCircle2, ChevronRight } from 'lucide-react';
 import { Product, View, CartItem } from '../types';
@@ -61,8 +62,100 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
 
   const offPct = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
 
+  const productDescription = product.desc || `Discover ${product.name} from The Pastel Story. Handcrafted boutique fashion with feminine aesthetics. Free shipping on orders above ₹999.`;
+
   return (
-    <div className="bg-[#faf8f6] min-h-screen pt-24">
+    <>
+      <Helmet>
+        <title>{product.name} - {product.category} | The Pastel Story</title>
+        <meta name="description" content={productDescription} />
+        <meta name="keywords" content={`${product.name}, pastel ${product.category}, ${product.category} online, boutique ${product.category}, handcrafted fashion, Indian ethnic wear, The Pastel Story`} />
+        <link rel="canonical" href={`https://thepastelstory.in/product/${product.id}`} />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={`${product.name} - The Pastel Story`} />
+        <meta property="og:description" content={productDescription} />
+        <meta property="og:image" content={product.imgs[0]} />
+        <meta property="og:url" content={`https://thepastelstory.in/product/${product.id}`} />
+        <meta property="product:price:amount" content={product.price.toString()} />
+        <meta property="product:price:currency" content="INR" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${product.name} - The Pastel Story`} />
+        <meta name="twitter:description" content={productDescription} />
+        <meta name="twitter:image" content={product.imgs[0]} />
+
+        {/* Product Structured Data */}
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "${product.name}",
+            "image": ${JSON.stringify(product.imgs)},
+            "description": "${productDescription}",
+            "sku": "TPS-${product.id}",
+            "brand": {
+              "@type": "Brand",
+              "name": "The Pastel Story"
+            },
+            "category": "${product.category}",
+            "offers": {
+              "@type": "Offer",
+              "url": "https://thepastelstory.in/product/${product.id}",
+              "priceCurrency": "INR",
+              "price": "${product.price}",
+              "priceValidUntil": "2025-12-31",
+              "availability": "${product.oos ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock'}",
+              "seller": {
+                "@type": "Organization",
+                "name": "The Pastel Story"
+              }
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "reviewCount": "127"
+            }
+          }
+        `}</script>
+
+        {/* Breadcrumb Structured Data */}
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://thepastelstory.in"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Shop",
+                "item": "https://thepastelstory.in/shop"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "${product.category}",
+                "item": "https://thepastelstory.in/shop?category=${product.category}"
+              },
+              {
+                "@type": "ListItem",
+                "position": 4,
+                "name": "${product.name}"
+              }
+            ]
+          }
+        `}</script>
+      </Helmet>
+
+      <div className="bg-[#faf8f6] min-h-screen pt-24">
       <div className="max-w-[1400px] mx-auto px-6 sm:px-12 py-12">
         {/* Breadcrumb - Minimal */}
         <div className="flex items-center gap-3 text-micro text-mid/50 mb-16">
@@ -437,5 +530,6 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }

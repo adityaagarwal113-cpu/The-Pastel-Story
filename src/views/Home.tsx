@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'motion/react';
 import { ArrowRight, Instagram } from 'lucide-react';
 import { Product, View } from '../types';
@@ -18,7 +19,29 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
   const featuredProducts = products.slice(0, 12);
 
   return (
-    <div className="overflow-hidden bg-[#faf8f6]">
+    <>
+      <Helmet>
+        <title>The Pastel Story - Handcrafted Pastel Fashion & Boutique Silhouettes</title>
+        <meta name="description" content="Discover handpicked pastel silhouettes, feminine aesthetics, and boutique fashion. Shop curated collections of kurtas, co-ord sets, dresses, and suit sets crafted with love. Free shipping on orders above ₹999." />
+        <meta name="keywords" content="pastel fashion, boutique clothing, handmade kurtas, co-ord sets, feminine dresses, Indian ethnic wear, handcrafted clothing, sustainable fashion, women's fashion India, The Pastel Story" />
+        <link rel="canonical" href="https://thepastelstory.in/" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://thepastelstory.in/" />
+        <meta property="og:title" content="The Pastel Story - Handcrafted Pastel Fashion & Boutique Silhouettes" />
+        <meta property="og:description" content="Discover handpicked pastel silhouettes and boutique fashion. Free shipping on orders above ₹999." />
+        <meta property="og:image" content={siteConfig.heroImage || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200"} />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://thepastelstory.in/" />
+        <meta name="twitter:title" content="The Pastel Story - Handcrafted Pastel Fashion" />
+        <meta name="twitter:description" content="Discover handpicked pastel silhouettes and boutique fashion crafted with love." />
+        <meta name="twitter:image" content={siteConfig.heroImage || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200"} />
+      </Helmet>
+
+      <div className="overflow-hidden bg-[#faf8f6]">
       {/* Hero Section - Editorial Layout */}
       <section className="relative min-h-screen flex items-center pt-24 pb-20 px-6 sm:px-12">
         <div className="absolute inset-0 z-0 select-none">
@@ -273,5 +296,6 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
         }
       `}} />
     </div>
+    </>
   );
 }

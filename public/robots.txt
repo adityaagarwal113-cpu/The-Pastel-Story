@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://thepastelstory.com/sitemap.xml
+# Disallow admin and auth pages
+Disallow: /#admin
+Disallow: /#cart
+Disallow: /#payment
+Disallow: /#wishlist
+
+# Crawl delay for respectful bots
+Crawl-delay: 1
+
+Sitemap: https://thepastelstory.in/sitemap.xml
