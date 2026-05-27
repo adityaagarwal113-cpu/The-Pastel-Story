@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, HelpCircle, LayoutGrid, User, Settings, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, Circle as HelpCircle, LayoutGrid, User, Settings, ChevronDown } from 'lucide-react';
 import { View } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
