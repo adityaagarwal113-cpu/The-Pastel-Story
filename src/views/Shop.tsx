@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { Search, ListFilter as Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import { Product, View } from '../types';
 import { CATEGORIES } from '../constants';
 import { ProductCard } from '../components/ProductCard';

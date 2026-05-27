@@ -1,7 +1,7 @@
 import React, { useState, useRef, CSSProperties, MouseEvent, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CircleCheck as CheckCircle2, ChevronRight } from 'lucide-react';
 import { Product, View, CartItem } from '../types';
 import { CATEGORIES, COLORS } from '../constants';
 import { Footer } from '../components/Footer';
