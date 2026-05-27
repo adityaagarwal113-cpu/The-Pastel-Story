@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'motion/react';
 import { Calendar, Clock, ArrowRight, Tag } from 'lucide-react';
-import { supabase, Blog } from '../lib/supabase';
+import { fetchBlogPosts, getAssetUrl, BlogPost } from '../lib/contentful';
+import { Entry } from 'contentful';
 import { Footer } from '../components/Footer';
 
 interface BlogListProps {
@@ -11,7 +12,7 @@ interface BlogListProps {
 }
 
 export function BlogList({ setView, siteConfig }: BlogListProps) {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [blogs, setBlogs] = useState<Entry<BlogPost>[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -20,28 +21,18 @@ export function BlogList({ setView, siteConfig }: BlogListProps) {
   }, []);
 
   const fetchBlogs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .select('*')
-        .eq('is_published', true)
-        .order('published_at', { ascending: false });
-
-      if (error) throw error;
-      setBlogs(data || []);
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
-    } finally {
-      setLoading(false);
-    }
+    const posts = await fetchBlogPosts(50);
+    setBlogs(posts);
+    setLoading(false);
   };
 
-  const categories = ['all', ...new Set(blogs.map(b => b.category))];
+  const categories = ['all', ...new Set(blogs.map(b => b.fields.category))];
   const filteredBlogs = selectedCategory === 'all'
     ? blogs
-    : blogs.filter(b => b.category === selectedCategory);
+    : blogs.filter(b => b.fields.category === selectedCategory);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'long',
@@ -106,54 +97,71 @@ export function BlogList({ setView, siteConfig }: BlogListProps) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-              {filteredBlogs.map((blog, index) => (
-                <motion.article
-                  key={blog.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group cursor-pointer"
-                >
-                  {blog.image_url && (
-                    <div className="aspect-[16/10] overflow-hidden mb-6 bg-[#eeebe7]">
-                      <img
-                        src={blog.image_url}
-                        alt={blog.title}
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
+              {filteredBlogs.map((blog, index) => {
+                const imageUrl = getAssetUrl(blog.fields.featuredImage);
 
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 text-micro text-mid/60">
-                      <span className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(blog.published_at || blog.created_at)}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Tag className="w-3 h-3" />
-                        {blog.category.replace('-', ' ')}
-                      </span>
-                    </div>
-
-                    <h2 className="font-serif text-2xl text-dark leading-tight group-hover:text-gold transition-colors">
-                      {blog.title}
-                    </h2>
-
-                    {blog.excerpt && (
-                      <p className="text-sm text-mid leading-relaxed line-clamp-3">
-                        {blog.excerpt}
-                      </p>
+                return (
+                  <motion.article
+                    key={blog.sys.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="group cursor-pointer"
+                  >
+                    {imageUrl && (
+                      <div className="aspect-[16/10] overflow-hidden mb-6 bg-[#eeebe7]">
+                        <img
+                          src={imageUrl}
+                          alt={blog.fields.title}
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      </div>
                     )}
 
-                    <div className="flex items-center gap-2 text-gold text-micro font-bold uppercase tracking-widest group-hover:gap-4 transition-all">
-                      <span>Read More</span>
-                      <ArrowRight className="w-4 h-4" />
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 text-micro text-mid/60">
+                        <span className="flex items-center gap-2">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(blog.fields.publishedAt || blog.sys.createdAt)}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Tag className="w-3 h-3" />
+                          {blog.fields.category.replace('-', ' ')}
+                        </span>
+                      </div>
+
+                      <h2 className="font-serif text-2xl text-dark leading-tight group-hover:text-gold transition-colors">
+                        {blog.fields.title}
+                      </h2>
+
+                      {blog.fields.excerpt && (
+                        <p className="text-sm text-mid leading-relaxed line-clamp-3">
+                          {blog.fields.excerpt}
+                        </p>
+                      )}
+
+                      {blog.fields.tags && blog.fields.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {blog.fields.tags.slice(0, 3).map((tag, i) => (
+                            <span
+                              key={i}
+                              className="text-[0.6rem] px-3 py-1 bg-gold/10 text-gold rounded-full uppercase tracking-wider"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-gold text-micro font-bold uppercase tracking-widest group-hover:gap-4 transition-all">
+                        <span>Read More</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
                     </div>
-                  </div>
-                </motion.article>
-              ))}
+                  </motion.article>
+                );
+              })}
             </div>
           )}
 

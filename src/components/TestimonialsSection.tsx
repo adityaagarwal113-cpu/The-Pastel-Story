@@ -1,33 +1,21 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Star, Quote } from 'lucide-react';
-import { supabase, Testimonial } from '../lib/supabase';
+import { fetchTestimonials, Testimonial } from '../lib/contentful';
+import { Entry } from 'contentful';
 
 export function TestimonialsSection() {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonials, setTestimonials] = useState<Entry<Testimonial>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTestimonials();
+    fetchTestimonialsData();
   }, []);
 
-  const fetchTestimonials = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('testimonials')
-        .select('*')
-        .eq('is_approved', true)
-        .eq('is_featured', true)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (error) throw error;
-      setTestimonials(data || []);
-    } catch (error) {
-      console.error('Error fetching testimonials:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchTestimonialsData = async () => {
+    const data = await fetchTestimonials(true);
+    setTestimonials(data);
+    setLoading(false);
   };
 
   if (loading || testimonials.length === 0) return null;
@@ -48,9 +36,9 @@ export function TestimonialsSection() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
+          {testimonials.slice(0, 3).map((testimonial, index) => (
             <motion.div
-              key={testimonial.id}
+              key={testimonial.sys.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -64,20 +52,20 @@ export function TestimonialsSection() {
                   <Star
                     key={i}
                     className={`w-4 h-4 ${
-                      i < testimonial.rating ? 'fill-gold text-gold' : 'text-gold/20'
+                      i < testimonial.fields.rating ? 'fill-gold text-gold' : 'text-gold/20'
                     }`}
                   />
                 ))}
               </div>
 
               <p className="text-mid text-sm leading-relaxed mb-6 italic">
-                "{testimonial.review_text}"
+                "{testimonial.fields.reviewText}"
               </p>
 
               <div className="pt-4 border-t border-gold/10">
-                <p className="font-bold text-dark text-sm">{testimonial.customer_name}</p>
-                {testimonial.customer_location && (
-                  <p className="text-micro text-mid/60">{testimonial.customer_location}</p>
+                <p className="font-bold text-dark text-sm">{testimonial.fields.customerName}</p>
+                {testimonial.fields.customerLocation && (
+                  <p className="text-micro text-mid/60">{testimonial.fields.customerLocation}</p>
                 )}
               </div>
             </motion.div>
