@@ -40,6 +40,8 @@ export function About({ setView, siteConfig }: { setView: (view: View) => void, 
                   alt="Founder Vision" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
               </motion.div>
               <div className="absolute -bottom-8 -left-8 w-40 h-40 glass p-8 flex flex-col items-center justify-center text-center">
@@ -85,6 +87,8 @@ export function About({ setView, siteConfig }: { setView: (view: View) => void, 
                alt="Aesthetic" 
                className="w-full h-full object-cover"
                referrerPolicy="no-referrer"
+               loading="lazy"
+               decoding="async"
              />
              <div className="absolute inset-0 bg-dark/20 flex items-center justify-center">
                 <div className="text-center">

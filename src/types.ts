@@ -12,6 +12,7 @@ export interface Product {
   oos: boolean;
   stock?: number | null;
   imgs: string[];
+  videoUrl?: string;
 }
 
 export interface CartItem {
@@ -27,7 +28,7 @@ export interface CartItem {
   selected?: boolean;
 }
 
-export type View = 'home' | 'shop' | 'about' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders' | 'blog';
+export type View = 'home' | 'shop' | 'about' | 'pdp' | 'cart' | 'payment' | 'track' | 'wishlist' | 'help' | 'admin' | 'orders';
 
 export interface Order {
   id?: string;

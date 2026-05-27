@@ -34,6 +34,7 @@ export function ProductCard({ product, onOpen, onAddToCart, onWishlist, isWishli
               alt={product.name}
               className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-0"
               loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             {img1 && (
@@ -42,6 +43,7 @@ export function ProductCard({ product, onOpen, onAddToCart, onWishlist, isWishli
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-cover object-top opacity-0 transition-all duration-1000 group-hover:scale-105 group-hover:opacity-100"
                 loading="lazy"
+                decoding="async"
                 referrerPolicy="no-referrer"
               />
             )}

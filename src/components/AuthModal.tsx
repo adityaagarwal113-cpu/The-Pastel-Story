@@ -159,7 +159,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 onClick={handleGoogleSignIn}
                 className="w-full py-4 bg-white border border-cream rounded-2xl font-bold text-[0.65rem] tracking-[0.2em] uppercase flex items-center justify-center gap-4 hover:bg-cream transition-all"
               >
-                <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />
+                <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" loading="lazy" decoding="async" />
                 Google Account
               </button>
 

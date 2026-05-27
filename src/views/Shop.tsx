@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ListFilter as Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import { Product, View } from '../types';
 import { CATEGORIES } from '../constants';
 import { ProductCard } from '../components/ProductCard';
@@ -79,47 +78,8 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
     setSearch('');
   };
 
-  const canonicalUrl = selectedCategory !== 'all'
-    ? `https://thepastelstory.in/shop?category=${selectedCategory}`
-    : 'https://thepastelstory.in/shop';
-
   return (
-    <>
-      <Helmet>
-        <title>{selectedCategory !== 'all' ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} - ` : ''}Boutique Collection | The Pastel Story</title>
-        <meta name="description" content={`Shop handcrafted ${selectedCategory !== 'all' ? selectedCategory : 'boutique fashion'} collections. Pastel silhouettes, feminine aesthetics, and sustainable fashion. Free shipping on orders above ₹999.`} />
-        <meta name="keywords" content={`pastel fashion, ${selectedCategory !== 'all' ? selectedCategory : 'boutique clothing'}, Indian ethnic wear, handcrafted clothing, sustainable fashion, women's wear, The Pastel Story`} />
-        <link rel="canonical" href={canonicalUrl} />
-
-        {/* Open Graph */}
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={`${selectedCategory !== 'all' ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1) : 'Boutique Collection'} | The Pastel Story`} />
-        <meta property="og:description" content={`Discover handcrafted ${selectedCategory !== 'all' ? selectedCategory : 'boutique fashion'} at The Pastel Story. Feminine aesthetics and sustainable fashion.`} />
-        <meta property="og:url" content={canonicalUrl} />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={`${selectedCategory !== 'all' ? selectedCategory : 'Collection'} | The Pastel Story`} />
-        <meta name="twitter:description" content={`Shop handcrafted ${selectedCategory !== 'all' ? selectedCategory : 'boutique fashion'} at The Pastel Story.`} />
-
-        {/* ItemList Schema for Category Page */}
-        <script type="application/ld+json">{`
-          {
-            "@context": "https://schema.org",
-            "@type": "ItemList",
-            "name": "${selectedCategory !== 'all' ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1) : 'All Products'}",
-            "description": "Curated boutique fashion collection",
-            "numberOfItems": ${filteredProducts.length},
-            "itemListElement": ${JSON.stringify(filteredProducts.slice(0, 10).map((p, i) => ({
-              "@type": "ListItem",
-              "position": i + 1,
-              "url": `https://thepastelstory.in/product/${p.id}`
-            })))}
-          }
-        `}</script>
-      </Helmet>
-
-      <div className="bg-[#faf8f6] min-h-screen">
+    <div className="bg-[#faf8f6] min-h-screen">
       {/* Editorial Header */}
       <header className="pt-32 pb-16 px-6 text-center">
         <span className="text-micro text-gold mb-4 block">The Collection</span>
@@ -387,6 +347,5 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
 
       <Footer setView={() => {}} siteConfig={siteConfig} />
     </div>
-    </>
   );
 }

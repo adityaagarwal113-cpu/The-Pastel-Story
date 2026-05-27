@@ -185,7 +185,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
                 <div className="flex items-center gap-4">
                    <div className="w-10 h-10 rounded-full bg-[#eeebe7] overflow-hidden border border-gold/5 shrink-0">
                       {review.userPhoto ? (
-                        <img src={review.userPhoto} className="w-full h-full object-cover" alt="" />
+                        <img src={review.userPhoto} className="w-full h-full object-cover" alt="" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-mid/20 italic font-serif">
                           {review.userName.charAt(0)}

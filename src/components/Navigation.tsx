@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, Circle as HelpCircle, LayoutGrid, User, Settings, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Heart, Menu, LogOut, X, ChevronLeft, Package, HelpCircle, LayoutGrid, User, Settings, ChevronDown } from 'lucide-react';
 import { View } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -51,7 +51,6 @@ export function Navigation({
   const navItems = [
     { label: 'Home', view: 'home' as View, icon: <LayoutGrid className="w-4 h-4" /> },
     { label: 'Shop', view: 'shop' as View, icon: <ShoppingBag className="w-4 h-4" /> },
-    { label: 'Blog', view: 'blog' as View, icon: <LayoutGrid className="w-4 h-4" /> },
     { label: 'Vision', view: 'about' as View, icon: <User className="w-4 h-4" /> },
     { label: 'Cart', view: 'cart' as View, icon: <ShoppingBag className="w-4 h-4" /> },
     { label: 'Wishlist', view: 'wishlist' as View, icon: <Heart className="w-4 h-4" /> },
@@ -129,7 +128,7 @@ export function Navigation({
                   >
                     <div className="w-8 h-8 rounded-full bg-cream border border-gold/10 flex items-center justify-center overflow-hidden">
                        {user.photoURL ? (
-                         <img src={user.photoURL} className="w-full h-full object-cover" alt="" />
+                         <img src={user.photoURL} className="w-full h-full object-cover" alt="" loading="lazy" decoding="async" />
                        ) : (
                          <User className="w-4 h-4 text-gold/40" />
                        )}

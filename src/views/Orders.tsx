@@ -214,7 +214,7 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
                     <div className="flex items-center gap-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
                       {orderItems.map((item, idx) => (
                         <div key={idx} className="w-16 h-20 md:w-20 md:h-28 bg-cream rounded-xl overflow-hidden flex-shrink-0 border border-gold/5 shadow-sm">
-                          <img src={item.img} alt={item.name} className="w-full h-full object-cover" />
+                          <img src={item.img} alt={item.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         </div>
                       ))}
                     </div>
@@ -258,7 +258,7 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
                 }}
               >
                 <div className="aspect-[4/5] bg-white rounded-3xl overflow-hidden mb-4 relative shadow-sm border border-gold/5">
-                  <img src={product.imgs[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <img src={product.imgs[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" decoding="async" />
                   <div className="absolute inset-0 bg-dark/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button className="bg-white text-dark px-6 py-3 rounded-full font-bold text-[0.6rem] uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                       View Piece
@@ -422,7 +422,7 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
                       {parseItems(selectedOrder.items).map((item, idx) => (
                         <div key={idx} className="flex gap-6 group/item">
                           <div className="w-24 h-32 md:w-32 md:h-44 bg-cream rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-gold/5">
-                            <img src={item.img} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-700" />
+                            <img src={item.img} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-700" loading="lazy" decoding="async" />
                           </div>
                           <div className="flex-1 space-y-3 pt-2">
                             <div className="flex flex-col gap-1">

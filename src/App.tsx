@@ -10,13 +10,12 @@ import { DEFAULT_PRODUCTS } from './constants';
 import { Product, CartItem, View } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
-import { PromotionBanner } from './components/PromotionBanner';
 import { useSiteData } from './hooks/useSiteData';
 import { db } from './lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Analytics } from '@vercel/analytics/react';
 
-// Views
+// Views (to be created)
 import { Home } from './views/Home';
 import { Shop } from './views/Shop';
 import { About } from './views/About';
@@ -28,13 +27,12 @@ import { TrackOrder } from './views/TrackOrder';
 import { Help } from './views/Help';
 import { AdminPortal } from './views/AdminPortal';
 import { Orders } from './views/Orders';
-import { BlogList } from './views/Blog';
 
 const CART_STORAGE_KEY = 'pastel_cart_v1';
 const WISH_STORAGE_KEY = 'pastel_wish_v1';
 
 function AppContent() {
-  const { products, siteConfig, loading } = useSiteData();
+  const { products, siteConfig, loading, usingContentful } = useSiteData();
   const { user } = useAuth();
   
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -356,8 +354,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-cream selection:bg-gold/20">
-      <PromotionBanner />
-      <Navigation
+      <Navigation 
         currentView={currentView} 
         setView={navigateTo} 
         goBack={goBack}
@@ -449,8 +446,7 @@ function AppContent() {
               />
             )}
             {currentView === 'help' && <Help siteConfig={siteConfig} />}
-            {currentView === 'admin' && <AdminPortal setView={navigateTo} />}
-            {currentView === 'blog' && <BlogList setView={navigateTo} siteConfig={siteConfig} />}
+            {currentView === 'admin' && <AdminPortal setView={navigateTo} usingContentful={usingContentful} />}
             {currentView === 'orders' && (
               <Orders 
                 products={products} 

@@ -1,33 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Main Home Page Landing -->
   <url>
-    <loc>https://thepastelstory.in/</loc>
-    <lastmod>2025-05-27</lastmod>
+    <loc>https://thepastelstory.com/</loc>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+  
+  <!-- Shop Products Catalog -->
   <url>
-    <loc>https://thepastelstory.in/#shop</loc>
-    <lastmod>2025-05-27</lastmod>
+    <loc>https://thepastelstory.com/?view=shop</loc>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
+
+  <!-- About Our Cozy Organic Story -->
   <url>
-    <loc>https://thepastelstory.in/#about</loc>
-    <lastmod>2025-05-27</lastmod>
-    <changefreq>monthly</changefreq>
+    <loc>https://thepastelstory.com/?view=about</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <!-- Help / support FAQ section -->
   <url>
-    <loc>https://thepastelstory.in/#track</loc>
-    <lastmod>2025-05-27</lastmod>
+    <loc>https://thepastelstory.com/?view=help</loc>
+    <lastmod>2026-05-27</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.7</priority>
   </url>
+
+  <!-- Track client orders -->
   <url>
-    <loc>https://thepastelstory.in/#help</loc>
-    <lastmod>2025-05-27</lastmod>
-    <changefreq>monthly</changefreq>
+    <loc>https://thepastelstory.com/?view=track-order</loc>
+    <lastmod>2026-05-27</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
 </urlset>

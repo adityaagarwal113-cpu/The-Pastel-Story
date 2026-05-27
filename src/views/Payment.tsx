@@ -11,11 +11,48 @@ import {
   QrCode
 } from 'lucide-react';
 import { View } from '../types';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { collection, doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { useAuth } from '../contexts/AuthContext';
+
+const compressAndEncodeToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Max dimension of 800px is perfect for verification while keeping data light (under 100KB)
+        const MAX_DIM = 800;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedBase64);
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 interface PaymentProps {
   checkoutData: {
@@ -35,26 +72,14 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<string>('');
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [copied, setCopied] = useState(false);
 
   // New UPI Details
   const UPI_ID = "shiwaniag456-2@okaxis";
   const MERCHANT_NAME = "Shiwani Agrawal";
   const QR_CODE_URL = "https://images.unsplash.com/photo-1622151834677-70f982c9adef?q=80&w=1000&auto=format&fit=crop"; // Placeholder - in real app would use the uploaded asset
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setProofFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const copyUpi = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -66,14 +91,16 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
     if (!user || !proofFile) return;
 
     setIsSubmitting(true);
-    setSubmissionStatus('Confirming Order...');
+    setSubmissionStatus('Processing Receipt...');
     
     try {
+      // 1. Compress & encode receipt to Base64
+      const downloadUrl = await compressAndEncodeToBase64(proofFile);
+      
+      setSubmissionStatus('Confirming Order...');
       const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
       const orderRef = doc(db, 'orders', orderId);
       
-      // 1. Create Order Document immediately
-      // We do this first to ensure there's a record before showing success
       await setDoc(orderRef, {
         orderId,
         userId: user.uid,
@@ -85,34 +112,13 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
         items: checkoutData.items,
         total: checkoutData.total,
         status: 'Order Placed',
-        paymentProof: 'Processing Image...',
+        paymentProof: downloadUrl,
         timestamp: serverTimestamp(),
       });
 
-      // 2. IMMEDIATE FEEDBACK: Show success screen now
       setOrderSuccess(orderId);
       onClearCart();
       setIsSubmitting(false);
-
-      // 3. BACKGROUND PROCESSING: Upload proof while success screen is shown
-      (async () => {
-        try {
-          const storageRef = ref(storage, `payments/${orderId}_${Date.now()}`);
-          const snapshot = await uploadBytes(storageRef, proofFile);
-          const downloadUrl = await getDownloadURL(snapshot.ref);
-
-          await updateDoc(orderRef, { 
-            paymentProof: downloadUrl,
-            status: 'Proof Uploaded'
-          });
-        } catch (bgError) {
-          console.error("Background upload failed:", bgError);
-          await updateDoc(orderRef, { 
-            paymentProof: 'Upload Failed - Manual Check Needed',
-            status: 'Upload Failed'
-          }).catch(() => {});
-        }
-      })();
 
     } catch (error) {
       console.error("Order initiation error:", error);
@@ -181,6 +187,8 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                       src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=shiwaniag456-2@okaxis&pn=Shiwani%20Agrawal" 
                       className="w-full h-full object-contain"
                       alt="Payment QR Code"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="absolute inset-0 bg-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[0.5rem] uppercase tracking-widest font-bold">
@@ -272,13 +280,24 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                 
                 <div className="space-y-6">
                   {!proofPreview ? (
-                    <label className="block w-full border-2 border-dashed border-white/10 rounded-2xl p-8 cursor-pointer hover:border-gold/50 transition-all group text-center">
-                      <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                    <label className="block w-full border-2 border-dashed border-white/10 rounded-2xl p-8 cursor-pointer hover:border-gold/50 transition-all group text-center bg-transparent">
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setProofFile(file);
+                            setProofPreview(URL.createObjectURL(new Blob([file], { type: file.type })));
+                          }
+                        }} 
+                      />
                       <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                         <Upload className="w-6 h-6 text-gold" />
                       </div>
-                      <p className="font-bold text-[0.65rem] tracking-widest uppercase mb-1">Click to Upload Screenshot</p>
-                      <p className="text-[0.55rem] text-white/30 italic">Required to confirm order</p>
+                      <p className="font-bold text-[0.65rem] tracking-widest uppercase mb-1">Click to Upload Payment Proof</p>
+                      <p className="text-[0.55rem] text-white/30 italic">Screenshots verified via Cloudinary</p>
                     </label>
                   ) : (
                     <div className="relative rounded-2xl overflow-hidden border border-gold/20 shadow-lg">
@@ -286,9 +305,11 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                         src={proofPreview} 
                         className="w-full aspect-video object-cover" 
                         alt="Payment Proof" 
+                        loading="lazy"
+                        decoding="async"
                       />
                       <button 
-                        onClick={() => { setProofFile(null); setProofPreview(null); }}
+                        onClick={() => { setProofPreview(null); setProofFile(null); }}
                         className="absolute top-2 right-2 bg-dark/80 text-white p-2 rounded-full hover:bg-red-500 transition-colors"
                       >
                         <AlertCircle className="w-4 h-4 rotate-45" />

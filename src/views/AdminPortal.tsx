@@ -4,16 +4,17 @@ import {
   Plus, Trash2, Edit2, Package, Tag, Layers, 
   Settings, Image as ImageIcon, ChevronRight, 
   Layout, Type, MessageSquare, Save, X,
-  CheckCircle2, Clock, Truck, ShieldAlert, User, Star, Search, Filter
+  CheckCircle2, Clock, Truck, ShieldAlert, User, Star, Search, Filter,
+  Loader2, Video
 } from 'lucide-react';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, orderBy } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { isContentfulConfigured } from '../lib/contentful';
 
-export function AdminPortal({ setView }: { setView: (v: View) => void }) {
+export function AdminPortal({ setView, usingContentful = false }: { setView: (v: View) => void; usingContentful?: boolean }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'config' | 'reviews'>('products');
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,26 +44,45 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const [isEditingReview, setIsEditingReview] = useState<any | null>(null);
   const [editingTracking, setEditingTracking] = useState<{ id: string, trackingId: string, trackingLink: string } | null>(null);
   const [pendingUploads, setPendingUploads] = useState(0);
-  const isUploading = pendingUploads > 0;
+  const [pendingFiles, setPendingFiles] = useState<{[key: string]: File}>({});
 
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
 
-  const [uploadProgress, setUploadProgress] = useState<string>('');
-
   const handleFileUpload = async (file: File): Promise<string> => {
-    try {
-      setUploadProgress('Uploading...');
-      // Upload directly without compression as requested for speed
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const storageRef = ref(storage, `uploads/${Date.now()}_${safeName}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      return await getDownloadURL(snapshot.ref);
-    } catch (error) {
-      console.error('Upload failed:', error);
-      throw error;
-    } finally {
-      setUploadProgress('');
-    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_DIM = 800;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(compressedBase64);
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const handleSeedData = async () => {
@@ -157,20 +177,81 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
   const handleSaveConfig = async () => {
     try {
-      await setDoc(doc(db, 'site_config', 'main'), siteConfig);
-      alert('Config saved!');
+      setPendingUploads(1);
+      const configToSave = { ...siteConfig };
+      
+      if (configToSave.heroImage?.startsWith('blob:')) {
+        const file = pendingFiles[configToSave.heroImage];
+        if (file) configToSave.heroImage = await handleFileUpload(file);
+      }
+
+      if (configToSave.aboutImage?.startsWith('blob:')) {
+        const file = pendingFiles[configToSave.aboutImage];
+        if (file) configToSave.aboutImage = await handleFileUpload(file);
+      }
+
+      if (configToSave.galleryImages) {
+        const uploadedGallery = [];
+        for (const img of configToSave.galleryImages) {
+          if (img.startsWith('blob:')) {
+            const file = pendingFiles[img];
+            if (file) {
+              const url = await handleFileUpload(file);
+              uploadedGallery.push(url);
+            }
+          } else {
+            uploadedGallery.push(img);
+          }
+        }
+        configToSave.galleryImages = uploadedGallery;
+      }
+
+      await setDoc(doc(db, 'site_config', 'main'), configToSave);
+      setSiteConfig(configToSave);
+      setPendingFiles({});
+      alert('Config saved successfully!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'site_config/main');
+    } finally {
+      setPendingUploads(0);
     }
   };
 
   const handleSaveProduct = async (p: any) => {
+    if (!p) return;
     try {
-      const pDoc = doc(db, 'products', p.id.toString());
-      await setDoc(pDoc, p);
+      setPendingUploads(1);
+      const productToSave = { ...p };
+
+      if (productToSave.imgs) {
+        const uploadedImgs = [];
+        for (const img of productToSave.imgs) {
+          if (img.startsWith('blob:')) {
+            const file = pendingFiles[img];
+            if (file) {
+              const url = await handleFileUpload(file);
+              uploadedImgs.push(url);
+            }
+          } else {
+            uploadedImgs.push(img);
+          }
+        }
+        productToSave.imgs = uploadedImgs;
+      }
+
+      if (productToSave.videoUrl?.startsWith('blob:')) {
+        const file = pendingFiles[productToSave.videoUrl];
+        if (file) productToSave.videoUrl = await handleFileUpload(file);
+      }
+
+      const pDoc = doc(db, 'products', productToSave.id.toString());
+      await setDoc(pDoc, productToSave);
       setIsEditingProduct(null);
+      setPendingFiles({});
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `products/${p.id}`);
+    } finally {
+      setPendingUploads(0);
     }
   };
 
@@ -240,38 +321,183 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
         >
           {activeTab === 'products' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-serif italic text-dark">Product Catalog ({products.length})</h3>
+              {/* Contentful CMS Integration Dashboard */}
+              <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-cream shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                  <div>
+                    <span className="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-gold block mb-1">Content Management System</span>
+                    <h3 className="font-serif text-2xl text-dark italic">Contentful Integration</h3>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {usingContentful ? (
+                      <span className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-100 text-green-600 rounded-full text-[0.65rem] font-bold tracking-wider uppercase">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        Live Contentful Mode
+                      </span>
+                    ) : (
+                      <span className="px-4 py-2 bg-amber-50 border border-amber-100 text-amber-600 rounded-full text-[0.65rem] font-bold tracking-wider uppercase">
+                        Local Database Mode
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-4">
+                    <p className="text-sm text-mid leading-relaxed">
+                      {usingContentful 
+                        ? "Your store is currently connected to Contentful CMS. Product details, images, sizes, and pricing are retrieved dynamically with high-performance edge-cache queries."
+                        : "Your store is currently using the local Firebase Firestore database. Connect a Contentful space to enable professional headless CMS capabilities where you, or your content editors, can manage products from Contentful's official sleek dashboard."
+                      }
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {usingContentful && (
+                        <a 
+                          href="https://app.contentful.com" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-6 py-3 bg-dark text-white rounded-xl text-[0.65rem] tracking-widest uppercase font-bold flex items-center gap-2 hover:bg-gold hover:scale-105 transition-all shadow-lg shadow-dark/10"
+                        >
+                          Open Contentful Console <ChevronRight className="w-3 h-3" />
+                        </a>
+                      )}
+                      
+                      <button 
+                        onClick={() => {
+                          const el = document.getElementById('contentful-guide-section');
+                          el?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="px-6 py-3 bg-cream border border-gold/10 text-gold rounded-xl text-[0.65rem] tracking-widest uppercase font-bold hover:bg-white transition-all"
+                      >
+                        Read Setup & Schema Model Guide
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-cream/30 rounded-2xl border border-gold/5 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[0.6rem] uppercase tracking-widest font-bold text-mid mb-2">Space Configuration</p>
+                      <div className="space-y-1.5 font-mono text-[0.65rem]">
+                        <div className="flex justify-between border-b border-cream/50 pb-1.5">
+                          <span className="opacity-60">Library Status:</span>
+                          <span className="font-bold text-gold">contentful-sdk@v10</span>
+                        </div>
+                        <div className="flex justify-between border-b border-cream/50 pb-1.5">
+                          <span className="opacity-60">Credentials:</span>
+                          <span className={isContentfulConfigured() ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                            {isContentfulConfigured() ? "Loaded" : "Not Provided"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="opacity-60">Space ID Source:</span>
+                          <span className="opacity-80">ENV_VARIABLE</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Setup tutorial walkthrough */}
+                <div id="contentful-guide-section" className="mt-8 pt-8 border-t border-cream space-y-6">
+                  <h4 className="font-serif text-lg italic text-dark flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-gold" /> Step-by-Step Guideline: How to Add Products in Contentful
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs text-mid leading-relaxed">
+                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
+                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">1</div>
+                      <h5 className="font-bold text-dark">Define Content Model</h5>
+                      <p className="text-[0.7rem]">Go to <strong>Content Model</strong>, click <strong>Design Content Type</strong>, set name as <code>Product</code> and API ID as <code>product</code>.</p>
+                    </div>
+
+                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
+                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">2</div>
+                      <h5 className="font-bold text-dark">Configure Schema Fields</h5>
+                      <p className="text-[0.7rem]">Add all fields exactly matching the model. Ensure field IDs are in lowercase (e.g., <code>price</code>, <code>imgs</code>) to enable automatic mapping.</p>
+                    </div>
+
+                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
+                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">3</div>
+                      <h5 className="font-bold text-dark">Set Environment Vars</h5>
+                      <p className="text-[0.7rem]">Under <strong>Settings → API Keys</strong>, retrieve both <strong>Space ID</strong> and <strong>Delivery Token</strong>. Add them in setting variables.</p>
+                    </div>
+
+                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
+                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">4</div>
+                      <h5 className="font-bold text-dark">Add Products & Publish</h5>
+                      <p className="text-[0.7rem]">Under <strong>Content</strong>, click <strong>Add Entry</strong>, populate product detail specifications, upload media, and click <strong>Publish</strong>!</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-cream/10 p-6 rounded-3xl border border-gold/10 space-y-4">
+                    <h5 className="text-[0.65rem] font-bold uppercase tracking-widest text-gold">FIELD Blueprints & CONFIGURATIONS</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 font-mono text-[0.65rem] text-mid border-t border-cream/50 pt-4">
+                      <div><strong className="text-dark">id</strong> (Number, Required) — Unique index ID (e.g. <code>101</code>)</div>
+                      <div><strong className="text-dark">name</strong> (Short Text, Required) — Product title name</div>
+                      <div><strong className="text-dark">desc</strong> (Long Text) — Silk touch description</div>
+                      <div><strong className="text-dark">price</strong> (Number, Required) — Price in INR (e.g., <code>1899</code>)</div>
+                      <div><strong className="text-dark">oldPrice</strong> (Number) — Strike-through price for discounts</div>
+                      <div><strong className="text-dark">category</strong> (Short Text) — e.g. <code>coord</code>, <code>kurta</code>, <code>dress</code>, <code>suit</code></div>
+                      <div><strong className="text-dark">emoji</strong> (Short Text) — e.g. <code>🌸</code> or <code>🌿</code></div>
+                      <div><strong className="text-dark">color</strong> (Short Text) — e.g. <code>blush</code>, <code>sage</code>, <code>lavender</code></div>
+                      <div><strong className="text-dark">badge</strong> (Short Text) — Displays custom promotional badge (e.g. <code>Best Seller</code>)</div>
+                      <div><strong className="text-dark">sizes</strong> (List of Short Text) — Available sizes list (e.g., <code>S, M, L, XL</code>)</div>
+                      <div><strong className="text-dark">oos</strong> (Boolean, Required) — Set true to show Out of Stock flag</div>
+                      <div><strong className="text-dark">imgs</strong> (Media, Many Assets) — Premium gallery photos</div>
+                      <div><strong className="text-dark">videoUrl</strong> (Short Text or Media) — Optional catalog walk video url</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4">
+                <h3 className="text-xl font-serif italic text-dark">Active Showcase Catalog ({products.length})</h3>
                 <div className="flex gap-4">
-                  {products.length === 0 && (
-                    <button 
-                      onClick={handleSeedData}
-                      className="bg-cream border border-gold/20 text-gold px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold"
+                  {usingContentful ? (
+                    <a 
+                      href="https://app.contentful.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-gold text-white px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold shadow-lg shadow-gold/20 hover:scale-105 transition-all"
                     >
-                      Seed From Constants
-                    </button>
+                      <Plus className="w-4 h-4" /> Add Product in Contentful
+                    </a>
+                  ) : (
+                    <>
+                      {products.length === 0 && (
+                        <button 
+                          onClick={handleSeedData}
+                          className="bg-cream border border-gold/20 text-gold px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold"
+                        >
+                          Seed From Constants
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => {
+                          const categories = siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
+                          setIsEditingProduct({ 
+                            id: Date.now(), 
+                            name: 'New Product', 
+                            price: 0, 
+                            oldPrice: null,
+                            badge: '',
+                            category: categories[0], 
+                            imgs: [], 
+                            sizes: ['S', 'M', 'L', 'XL'], 
+                            color: 'blush',
+                            oos: false,
+                            desc: ''
+                          } as any);
+                        }}
+                        className="bg-gold text-white px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold shadow-lg shadow-gold/20"
+                      >
+                        <Plus className="w-4 h-4" /> Add Product
+                      </button>
+                    </>
                   )}
-                  <button 
-                    onClick={() => {
-                      const categories = siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
-                      setIsEditingProduct({ 
-                        id: Date.now(), 
-                        name: 'New Product', 
-                        price: 0, 
-                        oldPrice: null,
-                        badge: '',
-                        category: categories[0], 
-                        imgs: [], 
-                        sizes: ['S', 'M', 'L', 'XL'], 
-                        color: 'blush',
-                        oos: false,
-                        desc: ''
-                      } as any);
-                    }}
-                    className="bg-gold text-white px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold shadow-lg shadow-gold/20"
-                  >
-                    <Plus className="w-4 h-4" /> Add Product
-                  </button>
                 </div>
               </div>
 
@@ -280,7 +506,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                   <div key={p.id} className="bg-white rounded-3xl p-6 shadow-sm group hover:shadow-xl transition-all border border-cream h-full flex flex-col">
                     <div className="aspect-[4/5] rounded-2xl overflow-hidden mb-4 relative bg-cream">
                       {p.imgs[0] ? (
-                        <img src={p.imgs[0]} className="w-full h-full object-cover" alt="" />
+                        <img 
+                          src={p.imgs[0]} 
+                          className="w-full h-full object-cover" 
+                          alt="" 
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gold/20 italic text-[0.6rem] uppercase tracking-widest font-bold">No Image</div>
                       )}
@@ -549,7 +781,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex gap-3 items-center">
                           {review.userPhoto ? (
-                            <img src={review.userPhoto} className="w-10 h-10 rounded-full" alt="" />
+                            <img 
+                              src={review.userPhoto} 
+                              className="w-10 h-10 rounded-full" 
+                              alt="" 
+                              loading="lazy"
+                              decoding="async"
+                            />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-cream flex items-center justify-center">
                               <User className="w-5 h-5 text-gold/40" />
@@ -615,7 +853,15 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       <div className="flex justify-between items-center border-t border-gold/5 pt-4">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-cream flex items-center justify-center overflow-hidden shrink-0">
-                             {product?.imgs[0] && <img src={product.imgs[0]} className="w-full h-full object-cover" alt="" />}
+                             {product?.imgs[0] && (
+                               <img 
+                                 src={product.imgs[0]} 
+                                 className="w-full h-full object-cover" 
+                                 alt="" 
+                                 loading="lazy"
+                                 decoding="async"
+                               />
+                             )}
                           </div>
                           <span className="text-[0.65rem] font-bold text-dark truncate max-w-[120px]">{product?.name || 'Unknown Product'}</span>
                         </div>
@@ -690,7 +936,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     <div className="space-y-4">
                       {siteConfig.heroImage && (
                         <div className="relative aspect-video rounded-2xl overflow-hidden bg-cream group">
-                          <img src={siteConfig.heroImage} className="w-full h-full object-cover" alt="Hero" />
+                          <img 
+                            src={siteConfig.heroImage} 
+                            className="w-full h-full object-cover" 
+                            alt="Hero" 
+                            loading="lazy"
+                            decoding="async"
+                          />
                           <button 
                             onClick={() => setSiteConfig({...siteConfig, heroImage: ''})}
                             className="absolute inset-0 bg-red-500/60 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-xs uppercase tracking-widest"
@@ -701,51 +953,42 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       )}
                       <div 
                         onDragOver={(e) => e.preventDefault()}
-                         onDrop={async (e) => {
+                        onDrop={(e) => {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
-                            setPendingUploads(prev => prev + 1);
-                            try {
-                              const url = await handleFileUpload(file);
-                              setSiteConfig((prev: any) => ({ ...prev, heroImage: url }));
-                            } catch (e) {
-                              alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
-                            } finally {
-                              setPendingUploads(prev => Math.max(0, prev - 1));
-                            }
+                            const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                            setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                            requestAnimationFrame(() => {
+                              setSiteConfig((prev: any) => ({ ...prev, heroImage: preview }));
+                            });
                           }
                         }}
-                        className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                        className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
                       >
                         <input 
                           type="file" 
                           className="absolute inset-0 opacity-0 cursor-pointer" 
-                          disabled={isUploading}
-                          onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setPendingUploads(prev => prev + 1);
-                            try {
-                              const url = await handleFileUpload(file);
-                              setSiteConfig((prev: any) => ({ ...prev, heroImage: url }));
-                            } catch (e) {
-                              alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
-                            } finally {
-                              setPendingUploads(prev => Math.max(0, prev - 1));
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                              setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                              requestAnimationFrame(() => {
+                                setSiteConfig((prev: any) => ({ ...prev, heroImage: preview }));
+                              });
                             }
-                          }
-                        }}
-                      />
-                      {isUploading ? (
-                        <div className="flex flex-col items-center">
-                          <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
-                          <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">{uploadProgress || 'Uploading...'}</p>
-                        </div>
-                      ) : (
+                          }}
+                        />
+                        {pendingUploads > 0 ? (
+                          <div className="flex flex-col items-center">
+                            <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-black">PREPARING...</p>
+                          </div>
+                        ) : (
                           <>
                             <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
-                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Drag or Click to Upload Hero Image</p>
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Drag or Click to Select Hero Image</p>
                           </>
                         )}
                       </div>
@@ -774,64 +1017,62 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     <div className="grid grid-cols-4 gap-2 mb-4">
                       {(siteConfig.galleryImages || []).map((img: string, idx: number) => (
                         <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-cream group">
-                          <img src={img} className="w-full h-full object-cover" alt="" />
-                          <button 
-                            onClick={() => {
-                              const newImgs = siteConfig.galleryImages.filter((_: any, i: number) => i !== idx);
-                              setSiteConfig({...siteConfig, galleryImages: newImgs});
-                            }}
-                            className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <img 
+                            src={img} 
+                            className={`w-full h-full object-cover transition-opacity duration-500 ${img.startsWith('blob:') ? 'opacity-20 grayscale animate-pulse' : ''}`} 
+                            alt="" 
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          {img.startsWith('blob:') && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <Loader2 className="w-5 h-5 text-gold animate-spin mb-1" />
+                              <span className="text-[0.4rem] font-black text-gold uppercase">Wait...</span>
+                            </div>
+                          )}
+                          {!img.startsWith('blob:') && (
+                            <button 
+                              onClick={() => {
+                                const newImgs = siteConfig.galleryImages.filter((_: any, i: number) => i !== idx);
+                                setSiteConfig({...siteConfig, galleryImages: newImgs});
+                              }}
+                              className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       ))}
-                      <label className={`aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                        {isUploading ? (
-                          <Clock className="w-6 h-6 text-gold animate-spin" />
-                        ) : (
-                          <>
-                            <Plus className="w-6 h-6 text-gold group-hover:scale-110 transition-transform" />
-                            <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
-                          </>
-                        )}
+                      <label className="aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group">
+                        <Plus className="w-6 h-6 text-gold transition-transform group-hover:scale-110" />
+                        <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
                         <input 
                           type="file" 
                           multiple
                           className="hidden" 
-                          disabled={isUploading}
                           onChange={(e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                              const newUploads = files.map(f => ({ 
+                                file: f, 
+                                preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
+                              }));
                               
-                              // Add previews immediately
-                              setSiteConfig((prev: any) => ({
+                              const nextPendingFiles: {[key: string]: File} = {};
+                              newUploads.forEach(u => {
+                                nextPendingFiles[u.preview] = u.file;
+                              });
+
+                              setPendingFiles(prev => ({
                                 ...prev,
-                                galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                                ...nextPendingFiles
                               }));
 
-                              setPendingUploads(prev => prev + newUploads.length);
-                              
-                              // Start uploads in parallel
-                              newUploads.forEach(async (u) => {
-                                try {
-                                  const url = await handleFileUpload(u.file);
-                                  setSiteConfig((prev: any) => {
-                                    const nextGallery = [...(prev.galleryImages || [])];
-                                    const idx = nextGallery.indexOf(u.preview);
-                                    if (idx !== -1) nextGallery[idx] = url;
-                                    return { ...prev, galleryImages: nextGallery };
-                                  });
-                                } catch (err) {
-                                  console.error('Gallery upload failed', err);
-                                  setSiteConfig((prev: any) => ({
-                                    ...prev,
-                                    galleryImages: (prev.galleryImages || []).filter((img: string) => img !== u.preview)
-                                  }));
-                                } finally {
-                                  setPendingUploads(prev => Math.max(0, prev - 1));
-                                }
+                              requestAnimationFrame(() => {
+                                setSiteConfig((prev: any) => ({
+                                  ...prev,
+                                  galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                                }));
                               });
                             }
                           }}
@@ -846,39 +1087,32 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         const files = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
                         if (files.length === 0) return;
                         
-                        const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                        const newUploads = files.map(f => ({ 
+                          file: f, 
+                          preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
+                        }));
                         
-                        // Add previews immediately
-                        setSiteConfig((prev: any) => ({
+                        const nextPendingFiles: {[key: string]: File} = {};
+                        newUploads.forEach(u => {
+                          nextPendingFiles[u.preview] = u.file;
+                        });
+
+                        setPendingFiles(prev => ({
                           ...prev,
-                          galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                          ...nextPendingFiles
                         }));
 
-                        setPendingUploads(prev => prev + newUploads.length);
-                        newUploads.forEach(async (u) => {
-                          try {
-                            const url = await handleFileUpload(u.file);
-                            setSiteConfig((prev: any) => {
-                              const nextGallery = [...(prev.galleryImages || [])];
-                              const idx = nextGallery.indexOf(u.preview);
-                              if (idx !== -1) nextGallery[idx] = url;
-                              return { ...prev, galleryImages: nextGallery };
-                            });
-                          } catch (err) {
-                            console.error('Gallery drop upload failed', err);
-                            setSiteConfig((prev: any) => ({
-                              ...prev,
-                              galleryImages: (prev.galleryImages || []).filter((img: string) => img !== u.preview)
-                            }));
-                          } finally {
-                            setPendingUploads(prev => Math.max(0, prev - 1));
-                          }
+                        requestAnimationFrame(() => {
+                          setSiteConfig((prev: any) => ({
+                            ...prev,
+                            galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                          }));
                         });
                       }}
-                      className={`p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center ${isUploading ? 'opacity-50' : ''}`}
+                      className={`p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center ${pendingUploads > 0 ? 'opacity-50' : ''}`}
                     >
                       <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">
-                        {isUploading ? 'Uploading Gallery Images...' : 'Drop Gallery Images Here'}
+                        {pendingUploads > 0 ? 'Uploading Gallery Images...' : 'Drop Gallery Images Here'}
                       </p>
                     </div>
                   </div>
@@ -940,49 +1174,47 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">About Page Image</label>
                       <div 
                         onDragOver={(e) => e.preventDefault()}
-                        onDrop={async (e) => {
+                        onDrop={(e) => {
                           e.preventDefault();
                           const file = e.dataTransfer.files[0];
                           if (file && file.type.startsWith('image/')) {
-                            setPendingUploads(prev => prev + 1);
-                            try {
-                              const url = await handleFileUpload(file);
-                              setSiteConfig((prev: any) => ({ ...prev, aboutImage: url }));
-                            } catch (e) {
-                              alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
-                            } finally {
-                              setPendingUploads(prev => Math.max(0, prev - 1));
-                            }
+                            const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                            setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                            requestAnimationFrame(() => {
+                              setSiteConfig((prev: any) => ({ ...prev, aboutImage: preview }));
+                            });
                           }
                         }}
-                        className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                        className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
                       >
                         <input 
                           type="file" 
                           className="absolute inset-0 opacity-0 cursor-pointer" 
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              setPendingUploads(prev => prev + 1);
-                              try {
-                                const url = await handleFileUpload(file);
-                                setSiteConfig((prev: any) => ({ ...prev, aboutImage: url }));
-                              } catch (e) {
-                                alert('Upload failed: ' + (e instanceof Error ? e.message : 'Unknown error'));
-                              } finally {
-                                setPendingUploads(prev => Math.max(0, prev - 1));
-                              }
+                              const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                              setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                              requestAnimationFrame(() => {
+                                setSiteConfig((prev: any) => ({ ...prev, aboutImage: preview }));
+                              });
                             }
                           }}
                         />
-                        {isUploading ? (
+                        {pendingUploads > 0 ? (
                           <div className="flex flex-col items-center">
-                            <Clock className="w-8 h-8 text-gold animate-spin mb-2" />
-                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">{uploadProgress || 'Uploading...'}</p>
+                            <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-black">PREPARING...</p>
                           </div>
                         ) : siteConfig.aboutImage ? (
                           <div className="flex flex-col items-center">
-                            <img src={siteConfig.aboutImage} className="w-20 h-20 object-cover rounded-lg mb-2" alt="" />
+                            <img 
+                              src={siteConfig.aboutImage} 
+                              className="w-20 h-20 object-cover rounded-lg mb-2" 
+                              alt="" 
+                              loading="lazy"
+                              decoding="async"
+                            />
                             <p className="text-micro text-mid">Click to Change</p>
                           </div>
                         ) : (
@@ -1083,14 +1315,30 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={handleSaveConfig}
-                    disabled={isUploading}
-                    className="w-full py-5 bg-dark text-white rounded-2xl font-bold text-[0.7rem] tracking-[0.2em] uppercase shadow-2xl shadow-dark/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                  >
-                    {isUploading ? <Clock className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                    {isUploading ? 'Uploading Assets...' : 'Save Site Config'}
-                  </button>
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => {
+                          if (pendingUploads > 0) return;
+                          handleSaveConfig();
+                      }}
+                      className="w-full py-5 bg-dark text-white rounded-2xl font-bold text-[0.8rem] tracking-[0.2em] uppercase shadow-2xl shadow-dark/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                      disabled={pendingUploads > 0}
+                    >
+                      {pendingUploads > 0 ? 'PLEASE WAIT - UPLOADING...' : 'FINISH & SAVE'}
+                    </button>
+                    {pendingUploads > 0 && (
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('Resetting the upload queue will stop tracking current progress. Continue?')) {
+                            setPendingUploads(0);
+                          }
+                        }}
+                        className="text-[0.55rem] text-mid uppercase tracking-[0.2em] font-black underline hover:text-dark text-center"
+                      >
+                        Taking too long? Reset Uploads
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1249,135 +1497,179 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         * Select all sizes that are currently available for this product.
                       </p>
                     </div>
-                  </div>
+                       </div>
                 </div>
+
                 <div className="space-y-6">
                   <div>
                     <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid mb-2 block">Product Images</label>
                     <div className="grid grid-cols-3 gap-3 mb-4">
-                      {isEditingProduct.imgs.map((img, idx) => (
+                      {(isEditingProduct.imgs || []).map((img, idx) => (
                         <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-cream group">
                           {img ? (
-                            <img src={img} className="w-full h-full object-cover" alt="" />
+                            <img 
+                              src={img} 
+                              className={`w-full h-full object-cover transition-opacity duration-500 ${img.startsWith('blob:') ? 'opacity-20 grayscale animate-pulse' : ''}`} 
+                              alt="" 
+                              loading="lazy"
+                              decoding="async"
+                            />
                           ) : (
                             <div className="w-full h-full bg-cream/50" />
                           )}
-                          <button 
-                            onClick={() => {
-                              const newImgs = isEditingProduct.imgs.filter((_, i) => i !== idx);
-                              setIsEditingProduct({...isEditingProduct, imgs: newImgs});
-                            }}
-                            className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {img?.startsWith('blob:') && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <Loader2 className="w-5 h-5 text-gold animate-spin mb-1" />
+                              <span className="text-[0.4rem] font-black text-gold uppercase">Wait...</span>
+                            </div>
+                          )}
+                          {(img && !img.startsWith('blob:')) && (
+                            <button 
+                              onClick={() => {
+                                const newImgs = isEditingProduct.imgs.filter((_, i) => i !== idx);
+                                setIsEditingProduct({...isEditingProduct, imgs: newImgs});
+                              }}
+                              className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       ))}
-                      <label className={`aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                        {isUploading ? (
-                          <Clock className="w-6 h-6 text-gold animate-spin" />
-                        ) : (
-                          <>
-                            <Plus className="w-6 h-6 text-gold group-hover:scale-110 transition-transform" />
-                            <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
-                          </>
-                        )}
+                      <label className="aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group">
+                        <Plus className="w-6 h-6 text-gold transition-transform group-hover:scale-110" />
+                        <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
                         <input 
                           type="file" 
                           className="hidden" 
                           multiple 
                           accept="image/*"
-                          disabled={isUploading}
                           onChange={(e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+                              const newUploads = files.map(f => ({ 
+                                file: f, 
+                                preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
+                              }));
                               
-                              // Step 1: Add previews immediately for instant feedback
-                              setIsEditingProduct(prev => prev ? {
-                                ...prev,
-                                imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
-                              } : null);
+                              const nextPendingFiles: {[key: string]: File} = {};
+                              newUploads.forEach(u => {
+                                nextPendingFiles[u.preview] = u.file;
+                              });
 
-                              setPendingUploads(prev => prev + newUploads.length);
-                              
-                              // Step 2: Upload in parallel and replace local blobs with real URLs
-                              newUploads.forEach(async (u) => {
-                                try {
-                                  const url = await handleFileUpload(u.file);
-                                  setIsEditingProduct(prev => {
-                                    if (!prev) return null;
-                                    const nextImgs = [...prev.imgs];
-                                    const idx = nextImgs.indexOf(u.preview);
-                                    if (idx !== -1) {
-                                      nextImgs[idx] = url;
-                                    } else {
-                                      nextImgs.push(url);
-                                    }
-                                    return { ...prev, imgs: nextImgs };
-                                  });
-                                } catch (err) {
-                                  console.error('Product image upload failed', err);
-                                  setIsEditingProduct(prev => prev ? {
-                                    ...prev,
-                                    imgs: prev.imgs.filter(img => img !== u.preview)
-                                  } : null);
-                                } finally {
-                                  setPendingUploads(prev => Math.max(0, prev - 1));
-                                }
+                              setPendingFiles(prev => ({
+                                ...prev,
+                                ...nextPendingFiles
+                              }));
+
+                              requestAnimationFrame(() => {
+                                setIsEditingProduct(prev => prev ? {
+                                  ...prev,
+                                  imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
+                                } : null);
                               });
                             }
                           }}
                         />
                       </label>
                     </div>
-                    <div 
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const rawFiles = Array.from(e.dataTransfer.files);
-                        const files = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
-                        if (files.length === 0) return;
-
-                        const newUploads = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
-                        
-                        setIsEditingProduct(prev => prev ? {
-                          ...prev,
-                          imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
-                        } : null);
-
-                        setPendingUploads(prev => prev + newUploads.length);
-                        newUploads.forEach(async (u) => {
-                          try {
-                            const url = await handleFileUpload(u.file);
-                            setIsEditingProduct(prev => {
-                              if (!prev) return null;
-                              const nextImgs = [...prev.imgs];
-                              const idx = nextImgs.indexOf(u.preview);
-                              if (idx !== -1) nextImgs[idx] = url;
-                              return { ...prev, imgs: nextImgs };
-                            });
-                          } catch (err) {
-                            console.error('Product image drop failed', err);
-                            setIsEditingProduct(prev => prev ? {
-                              ...prev,
-                              imgs: prev.imgs.filter(img => img !== u.preview)
-                            } : null);
-                          } finally {
-                            setPendingUploads(prev => Math.max(0, prev - 1));
-                          }
-                        });
-                      }}
-                      className={`p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center ${isUploading ? 'opacity-50' : ''}`}
-                    >
-                      <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
-                      <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">
-                        {isUploading ? 'Uploading Images...' : 'Drag & Drop Images Here'}
-                      </p>
-                    </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div 
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const rawFiles = Array.from(e.dataTransfer.files);
+                      const imageFiles = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
+                      const videoFiles = rawFiles.filter((f: any) => f.type && f.type.startsWith('video/')) as File[];
+                      
+                      if (imageFiles.length > 0) {
+                        const newUploads = imageFiles.map(f => ({ 
+                          file: f, 
+                          preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
+                        }));
+                        
+                        const nextPendingFiles: {[key: string]: File} = {};
+                        newUploads.forEach(u => {
+                          nextPendingFiles[u.preview] = u.file;
+                        });
+
+                        setPendingFiles(prev => ({
+                          ...prev,
+                          ...nextPendingFiles
+                        }));
+
+                        requestAnimationFrame(() => {
+                          setIsEditingProduct(prev => prev ? {
+                            ...prev,
+                            imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
+                          } : null);
+                        });
+                      }
+
+                      if (videoFiles.length > 0) {
+                        const videoFile = videoFiles[0];
+                        const preview = URL.createObjectURL(new Blob([videoFile], { type: videoFile.type }));
+                        setPendingFiles(prev => ({ ...prev, [preview]: videoFile }));
+                        requestAnimationFrame(() => {
+                          setIsEditingProduct(prev => prev ? { ...prev, videoUrl: preview } : null);
+                        });
+                      }
+                    }}
+                    className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center"
+                  >
+                    <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
+                    <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">
+                      Add Images & Videos (Drag & Drop)
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-cream">
+                    <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid mb-2 block">Product Video (Optional)</label>
+                    {isEditingProduct.videoUrl ? (
+                      <div className="relative aspect-video rounded-xl overflow-hidden bg-black group mb-4">
+                        <video src={isEditingProduct.videoUrl} className="w-full h-full object-cover" controls />
+                        <button 
+                          onClick={() => setIsEditingProduct({...isEditingProduct, videoUrl: undefined})}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div 
+                          className="p-6 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
+                        >
+                          <input 
+                            type="file" 
+                            accept="video/*"
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                                setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                                requestAnimationFrame(() => {
+                                  setIsEditingProduct(prev => prev ? {...prev, videoUrl: preview} : null);
+                                });
+                              }
+                            }}
+                          />
+                          <ImageIcon className="w-6 h-6 text-gold/30 mx-auto mb-2" />
+                          <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">Upload Product Video</p>
+                        </div>
+                        <input 
+                          placeholder="Or paste video URL..."
+                          className="w-full p-4 bg-cream/30 rounded-xl outline-none border-none text-[0.6rem]"
+                          value={isEditingProduct.videoUrl || ''}
+                          onChange={(e) => setIsEditingProduct({...isEditingProduct, videoUrl: e.target.value})}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-4 pt-4 border-t border-cream">
                     <div className="space-y-1">
                       <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">External Image URL (Alternative)</label>
                       <div className="flex gap-2">
@@ -1402,13 +1694,30 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                   </div>
 
-                  <button 
-                    onClick={() => handleSaveProduct(isEditingProduct)}
-                    disabled={isUploading}
-                    className="w-full py-5 bg-gold text-white rounded-2xl font-bold text-[0.7rem] tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 mt-4 disabled:opacity-50"
-                  >
-                    {isUploading ? 'Waiting for uploads...' : 'Save Product Changes'}
-                  </button>
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => {
+                          if (pendingUploads > 0) return;
+                          handleSaveProduct(isEditingProduct);
+                      }}
+                      className="w-full py-5 bg-gold text-white rounded-2xl font-bold text-[0.8rem] tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 mt-4 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                      disabled={pendingUploads > 0}
+                    >
+                      {pendingUploads > 0 ? 'PLEASE WAIT - UPLOADING...' : 'FINISH & SAVE'}
+                    </button>
+                    {pendingUploads > 0 && (
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('Some uploads are taking too long. Reset queue and try to save anyway?')) {
+                            setPendingUploads(0);
+                          }
+                        }}
+                        className="text-[0.55rem] text-mid uppercase tracking-[0.2em] font-black underline hover:text-gold"
+                      >
+                        Upload stuck? Click to force reset
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>

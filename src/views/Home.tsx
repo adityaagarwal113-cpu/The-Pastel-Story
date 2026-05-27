@@ -1,10 +1,8 @@
-import { Helmet } from 'react-helmet-async';
 import { motion } from 'motion/react';
 import { ArrowRight, Instagram } from 'lucide-react';
 import { Product, View } from '../types';
 import { ProductCard } from '../components/ProductCard';
 import { Footer } from '../components/Footer';
-import { TestimonialsSection } from '../components/TestimonialsSection';
 
 interface HomeProps {
   products: Product[];
@@ -20,29 +18,7 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
   const featuredProducts = products.slice(0, 12);
 
   return (
-    <>
-      <Helmet>
-        <title>The Pastel Story - Handcrafted Pastel Fashion & Boutique Silhouettes</title>
-        <meta name="description" content="Discover handpicked pastel silhouettes, feminine aesthetics, and boutique fashion. Shop curated collections of kurtas, co-ord sets, dresses, and suit sets crafted with love. Free shipping on orders above ₹999." />
-        <meta name="keywords" content="pastel fashion, boutique clothing, handmade kurtas, co-ord sets, feminine dresses, Indian ethnic wear, handcrafted clothing, sustainable fashion, women's fashion India, The Pastel Story" />
-        <link rel="canonical" href="https://thepastelstory.in/" />
-
-        {/* Open Graph */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://thepastelstory.in/" />
-        <meta property="og:title" content="The Pastel Story - Handcrafted Pastel Fashion & Boutique Silhouettes" />
-        <meta property="og:description" content="Discover handpicked pastel silhouettes and boutique fashion. Free shipping on orders above ₹999." />
-        <meta property="og:image" content={siteConfig.heroImage || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200"} />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content="https://thepastelstory.in/" />
-        <meta name="twitter:title" content="The Pastel Story - Handcrafted Pastel Fashion" />
-        <meta name="twitter:description" content="Discover handpicked pastel silhouettes and boutique fashion crafted with love." />
-        <meta name="twitter:image" content={siteConfig.heroImage || "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200"} />
-      </Helmet>
-
-      <div className="overflow-hidden bg-[#faf8f6]">
+    <div className="overflow-hidden bg-[#faf8f6]">
       {/* Hero Section - Editorial Layout */}
       <section className="relative min-h-screen flex items-center pt-24 pb-20 px-6 sm:px-12">
         <div className="absolute inset-0 z-0 select-none">
@@ -116,6 +92,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                   alt="Pastel Story Collection" 
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-[3s]"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-dark/10 pointer-events-none" />
               </div>
@@ -132,6 +110,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                     alt="Detail" 
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
                    />
                 </div>
               </motion.div>
@@ -151,6 +131,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                   alt="Process" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
               <div className="absolute -top-12 -right-12 w-48 h-48 border border-gold/10 rounded-full flex items-center justify-center p-8 text-center bg-cream/30 backdrop-blur-sm">
@@ -269,6 +251,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                       alt="Lookbook" 
                       className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-[2s] group-hover:scale-110"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="w-full h-full bg-cream" />
@@ -285,9 +269,6 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
         </div>
       </section>
 
-      {/* Dynamic Testimonials */}
-      <TestimonialsSection />
-
       <Footer setView={setView} siteConfig={siteConfig} />
 
       <style dangerouslySetInnerHTML={{ __html: `
@@ -300,6 +281,5 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
         }
       `}} />
     </div>
-    </>
   );
 }

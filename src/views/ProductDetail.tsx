@@ -1,7 +1,6 @@
 import React, { useState, useRef, CSSProperties, MouseEvent, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CircleCheck as CheckCircle2, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CheckCircle2, ChevronRight } from 'lucide-react';
 import { Product, View, CartItem } from '../types';
 import { CATEGORIES, COLORS } from '../constants';
 import { Footer } from '../components/Footer';
@@ -18,7 +17,8 @@ interface ProductDetailProps {
 }
 
 export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
-  const [mainImg, setMainImg] = useState(product.imgs[0]);
+  const [mainImg, setMainImg] = useState<string | null>(product.imgs[0]);
+  const [showVideo, setShowVideo] = useState(false);
   const [selectedSize, setSelectedSize] = useState(initialEditItem?.size || product.sizes[0] || 'One Size');
   const [addedToCart, setAddedToCart] = useState(false);
   const [measurements, setMeasurements] = useState('');
@@ -62,100 +62,8 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
 
   const offPct = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
 
-  const productDescription = product.desc || `Discover ${product.name} from The Pastel Story. Handcrafted boutique fashion with feminine aesthetics. Free shipping on orders above ₹999.`;
-
   return (
-    <>
-      <Helmet>
-        <title>{product.name} - {product.category} | The Pastel Story</title>
-        <meta name="description" content={productDescription} />
-        <meta name="keywords" content={`${product.name}, pastel ${product.category}, ${product.category} online, boutique ${product.category}, handcrafted fashion, Indian ethnic wear, The Pastel Story`} />
-        <link rel="canonical" href={`https://thepastelstory.in/product/${product.id}`} />
-
-        {/* Open Graph */}
-        <meta property="og:type" content="product" />
-        <meta property="og:title" content={`${product.name} - The Pastel Story`} />
-        <meta property="og:description" content={productDescription} />
-        <meta property="og:image" content={product.imgs[0]} />
-        <meta property="og:url" content={`https://thepastelstory.in/product/${product.id}`} />
-        <meta property="product:price:amount" content={product.price.toString()} />
-        <meta property="product:price:currency" content="INR" />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name} - The Pastel Story`} />
-        <meta name="twitter:description" content={productDescription} />
-        <meta name="twitter:image" content={product.imgs[0]} />
-
-        {/* Product Structured Data */}
-        <script type="application/ld+json">{`
-          {
-            "@context": "https://schema.org",
-            "@type": "Product",
-            "name": "${product.name}",
-            "image": ${JSON.stringify(product.imgs)},
-            "description": "${productDescription}",
-            "sku": "TPS-${product.id}",
-            "brand": {
-              "@type": "Brand",
-              "name": "The Pastel Story"
-            },
-            "category": "${product.category}",
-            "offers": {
-              "@type": "Offer",
-              "url": "https://thepastelstory.in/product/${product.id}",
-              "priceCurrency": "INR",
-              "price": "${product.price}",
-              "priceValidUntil": "2025-12-31",
-              "availability": "${product.oos ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock'}",
-              "seller": {
-                "@type": "Organization",
-                "name": "The Pastel Story"
-              }
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.8",
-              "reviewCount": "127"
-            }
-          }
-        `}</script>
-
-        {/* Breadcrumb Structured Data */}
-        <script type="application/ld+json">{`
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://thepastelstory.in"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Shop",
-                "item": "https://thepastelstory.in/shop"
-              },
-              {
-                "@type": "ListItem",
-                "position": 3,
-                "name": "${product.category}",
-                "item": "https://thepastelstory.in/shop?category=${product.category}"
-              },
-              {
-                "@type": "ListItem",
-                "position": 4,
-                "name": "${product.name}"
-              }
-            ]
-          }
-        `}</script>
-      </Helmet>
-
-      <div className="bg-[#faf8f6] min-h-screen pt-24">
+    <div className="bg-[#faf8f6] min-h-screen pt-24">
       <div className="max-w-[1400px] mx-auto px-6 sm:px-12 py-12">
         {/* Breadcrumb - Minimal */}
         <div className="flex items-center gap-3 text-micro text-mid/50 mb-16">
@@ -169,19 +77,34 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
           {/* Gallery UI - High Resolution Vertical Grid focus */}
           <div className="lg:col-span-7 flex flex-col md:flex-row gap-6">
-            {product.imgs.length > 1 && (
+            {(product.imgs.length > 1 || product.videoUrl) && (
               <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scroller-hidden shrink-0">
                 {product.imgs.map((img, i) => (
                   <button 
                     key={i}
-                    onClick={() => setMainImg(img)}
+                    onClick={() => {
+                        setMainImg(img);
+                        setShowVideo(false);
+                    }}
                     className={`relative w-20 aspect-[3/4] overflow-hidden transition-all duration-700 ${
-                      mainImg === img ? 'ring-1 ring-gold shadow-lg grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0'
+                      !showVideo && mainImg === img ? 'ring-1 ring-gold shadow-lg grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0'
                     }`}
                   >
-                    <img src={img} className="w-full h-full object-cover object-top" alt="" referrerPolicy="no-referrer" />
+                    <img src={img} className="w-full h-full object-cover object-top" alt="" referrerPolicy="no-referrer" loading="lazy" decoding="async" />
                   </button>
                 ))}
+                {product.videoUrl && (
+                  <button 
+                    onClick={() => setShowVideo(true)}
+                    className={`relative w-20 aspect-[3/4] overflow-hidden transition-all duration-700 bg-black flex items-center justify-center ${
+                      showVideo ? 'ring-1 ring-gold shadow-lg' : 'opacity-40 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center">
+                        <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-1" />
+                    </div>
+                  </button>
+                )}
               </div>
             )}
             
@@ -192,16 +115,31 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
                 onMouseLeave={() => setZoomStyle({ display: 'none' })}
                 className="relative aspect-[3/4] bg-[#eeebe7] overflow-hidden cursor-zoom-in luxury-shadow group"
               >
-                <img 
-                  src={mainImg} 
-                  className="w-full h-full object-cover object-top transition-all duration-1000 grayscale-[10%] group-hover:grayscale-0" 
-                  alt={product.name}
-                  referrerPolicy="no-referrer"
-                />
-                <div 
-                  className="absolute inset-0 pointer-events-none" 
-                  style={zoomStyle}
-                />
+                {showVideo && product.videoUrl ? (
+                    <video 
+                        src={product.videoUrl} 
+                        className="w-full h-full object-cover" 
+                        autoPlay 
+                        muted 
+                        loop 
+                        controls 
+                    />
+                ) : (
+                    <>
+                        <img 
+                        src={mainImg || ''} 
+                        className="w-full h-full object-cover object-top transition-all duration-1000 grayscale-[10%] group-hover:grayscale-0" 
+                        alt={product.name}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        decoding="async"
+                        />
+                        <div 
+                        className="absolute inset-0 pointer-events-none" 
+                        style={zoomStyle}
+                        />
+                    </>
+                )}
                 <div className="absolute inset-0 bg-dark/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
               </div>
             </div>
@@ -530,6 +468,5 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
         )}
       </AnimatePresence>
     </div>
-    </>
   );
 }
