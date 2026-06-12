@@ -45,7 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
           }
         } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`);
+          console.warn('Setting user profile doc failed on Firestore.', error);
+          try {
+            handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`);
+          } catch (e) {
+            // Logged to console but not crash auth context setup
+          }
         }
         setUser(firebaseUser);
       } else {

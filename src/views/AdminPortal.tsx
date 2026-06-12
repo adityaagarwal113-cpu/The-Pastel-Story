@@ -12,6 +12,8 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { ImageUploader } from '../components/ImageUploader';
+import { compressImage } from '../lib/image';
 
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const usingContentful = false;
@@ -49,14 +51,19 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        resolve(event.target?.result as string);
-      };
-      reader.onerror = (error) => reject(error);
-    });
+    try {
+      return await compressImage(file, 500, 0.7);
+    } catch (err) {
+      console.warn("Compression in handleFileUpload fell back to raw FileReader:", err);
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          resolve(event.target?.result as string);
+        };
+        reader.onerror = (error) => reject(error);
+      });
+    }
   };
 
   const handleSeedData = async () => {
@@ -81,14 +88,22 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ ...doc.data() } as Product)));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'products');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      } catch (e) {
+        console.warn('Silent products subscription fallback on quota exceeded.');
+      }
     });
 
     // Real-time orders
     const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('timestamp', 'desc')), (snapshot) => {
       setOrders(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'orders');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'orders');
+      } catch (e) {
+        console.warn('Silent orders subscription fallback on quota exceeded.');
+      }
     });
 
     // Real-time config
@@ -96,7 +111,11 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       if (doc.exists()) setSiteConfig(doc.data());
       setIsLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'site_config/main');
+      try {
+        handleFirestoreError(error, OperationType.GET, 'site_config/main');
+      } catch (e) {
+        console.warn('Silent site_config subscription fallback on quota exceeded.');
+      }
       setIsLoading(false);
     });
 
@@ -104,7 +123,11 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     const unsubReviews = onSnapshot(query(collection(db, 'reviews'), orderBy('timestamp', 'desc')), (snapshot) => {
       setReviews(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'reviews');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'reviews');
+      } catch (e) {
+        console.warn('Silent reviews subscription fallback on quota exceeded.');
+      }
     });
 
     return () => {
@@ -1396,43 +1419,17 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                   </div>
 
-                  <div 
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={async (e) => {
-                      e.preventDefault();
-                      const rawFiles = Array.from(e.dataTransfer.files);
-                      const imageFiles = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
-                      const videoFiles = rawFiles.filter((f: any) => f.type && f.type.startsWith('video/')) as File[];
-                      
-                      if (imageFiles.length > 0) {
-                        try {
-                          const base64s = await Promise.all(
-                            imageFiles.map(file => handleFileUpload(file))
-                          );
-                          setIsEditingProduct(prev => prev ? {
-                            ...prev,
-                            imgs: [...prev.imgs, ...base64s]
-                          } : null);
-                        } catch (err) {
-                          console.error('Error uploading dropped images:', err);
-                        }
-                      }
-
-                      if (videoFiles.length > 0) {
-                        const videoFile = videoFiles[0];
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          setIsEditingProduct(prev => prev ? { ...prev, videoUrl: event.target?.result as string } : null);
-                        };
-                        reader.readAsDataURL(videoFile);
-                      }
-                    }}
-                    className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center"
-                  >
-                    <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
-                    <p className="text-[0.6rem] text-mid uppercase tracking-widest font-bold">
-                      Add Images & Videos (Drag & Drop)
-                    </p>
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid block">Premium Drag & Drop Upload</label>
+                    <ImageUploader 
+                      id="product-image-upload"
+                      onChange={(base64) => {
+                        setIsEditingProduct(prev => prev ? {
+                          ...prev,
+                          imgs: [...prev.imgs, base64]
+                        } : null);
+                      }}
+                    />
                   </div>
 
                   <div className="pt-4 border-t border-cream">

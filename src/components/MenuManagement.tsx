@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Edit3, Image as ImageIcon, Save, X } from 'lucide-react';
 import { MenuItem, Category } from '../types';
 import { CATEGORIES } from '../constants';
+import { compressImage } from '../lib/image';
 
 interface MenuManagementProps {
   menu: MenuItem[];
@@ -28,40 +29,17 @@ export default function MenuManagement({ menu, categories, onAdd, onRemove, onUp
   });
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          const MAX_DIM = 800;
-          if (width > MAX_DIM || height > MAX_DIM) {
-            if (width > height) {
-              height = Math.round((height * MAX_DIM) / width);
-              width = MAX_DIM;
-            } else {
-              width = Math.round((width * MAX_DIM) / height);
-              height = MAX_DIM;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(compressedBase64);
-        };
-        img.onerror = (error) => reject(error);
-      };
-      reader.onerror = (error) => reject(error);
-    });
+    try {
+      return await compressImage(file, 500, 0.7);
+    } catch (err) {
+      console.warn("Compression fallback inside MenuManagement handleFileUpload:", err);
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => resolve(event.target?.result as string);
+        reader.onerror = (error) => reject(error);
+      });
+    }
   };
 
   const handleEdit = (item: MenuItem) => {
@@ -246,11 +224,11 @@ export default function MenuManagement({ menu, categories, onAdd, onRemove, onUp
                       e.currentTarget.classList.remove('ring-2', 'ring-[#D97706]');
                       const file = e.dataTransfer.files[0];
                       if (file && file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          setNewItem({ ...newItem, image: event.target?.result as string });
-                        };
-                        reader.readAsDataURL(file);
+                        handleFileUpload(file)
+                          .then((compressedUrl) => {
+                            setNewItem({ ...newItem, image: compressedUrl });
+                          })
+                          .catch((err) => console.error("Drop image compression failed:", err));
                       }
                     }}
                     onClick={() => document.getElementById('file-upload')?.click()}
@@ -263,11 +241,11 @@ export default function MenuManagement({ menu, categories, onAdd, onRemove, onUp
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            setNewItem({ ...newItem, image: event.target?.result as string });
-                          };
-                          reader.readAsDataURL(file);
+                          handleFileUpload(file)
+                            .then((compressedUrl) => {
+                              setNewItem({ ...newItem, image: compressedUrl });
+                            })
+                            .catch((err) => console.error("File selection compression failed:", err));
                         }
                       }}
                     />

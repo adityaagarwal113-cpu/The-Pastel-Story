@@ -26,18 +26,26 @@ export function useSiteData() {
       }
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'products');
       setProducts(DEFAULT_PRODUCTS);
       setLoading(false);
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      } catch (e) {
+        console.warn('Silent fallback to local products on quota exceeded/error.');
+      }
     });
 
     // Real-time site config from Firestore
-    const unsubConfig = onSnapshot(doc(db, 'site_config', 'main'), (doc) => {
-      if (doc.exists()) {
-        setSiteConfig(doc.data());
+    const unsubConfig = onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
+      if (snap.exists()) {
+        setSiteConfig(snap.data());
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'site_config/main');
+      try {
+        handleFirestoreError(error, OperationType.GET, 'site_config/main');
+      } catch (e) {
+        console.warn('Silent fallback to local site config on quota exceeded/error.');
+      }
     });
 
     return () => {

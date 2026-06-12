@@ -5,6 +5,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { Review } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 interface ReviewSectionProps {
   productId: number;
@@ -34,6 +35,12 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
         ...doc.data()
       })) as Review[];
       setReviews(revs);
+    }, (error) => {
+      try {
+        handleFirestoreError(error, OperationType.LIST, `reviews_product_${productId}`);
+      } catch (err) {
+        console.warn('Silent fallback on reviews subscription quota exceeded:', err);
+      }
     });
 
     return () => unsubscribe();

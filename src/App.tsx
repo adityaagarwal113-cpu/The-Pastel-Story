@@ -100,6 +100,17 @@ function AppContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [hasLoadedCloud, setHasLoadedCloud] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+
+  // Handle Firestore Quota Exceeded event
+  useEffect(() => {
+    const handleQuotaExceeded = () => {
+      setIsQuotaExceeded(true);
+    };
+
+    window.addEventListener('firestore-quota-exceeded', handleQuotaExceeded);
+    return () => window.removeEventListener('firestore-quota-exceeded', handleQuotaExceeded);
+  }, []);
 
   // Global Scroll Reset on view change
   useEffect(() => {
@@ -366,7 +377,38 @@ function AppContent() {
         siteConfig={siteConfig}
       />
 
-      <main className="pt-16 min-h-[calc(100vh-64px)]">
+      {isQuotaExceeded && currentView === 'admin' && (
+        <div id="quota-exceeded-banner" className="fixed top-16 left-0 right-0 z-40 bg-[#FFF4E5] border-b border-[#FFE0B2] px-4 py-2 text-[#E65100] text-center text-xs font-bold font-sans tracking-wide shadow-sm animate-fade-in">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-4 md:h-8">
+            <span className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-widest"><span className="text-base">⚠️</span> Firestore Daily Resource Limit Reached</span>
+            <span className="opacity-95 text-[11px] font-medium leading-normal">
+              The daily free quota is exceeded. Live cloud changes may take time to apply or fallback until limits reset tomorrow.
+            </span>
+            <div className="flex gap-2 text-[10px] uppercase tracking-widest font-bold mt-1 md:mt-0">
+              <a 
+                href="https://console.firebase.google.com/project/the-pastel-story/firestore/databases/ai-studio-356527bc-3f4e-4a51-a1b1-2dc4c86f6aef/data?openUpgradeDialog=true" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-[#FFE0B2] hover:bg-[#FFCC80] px-3 py-1 rounded-full text-[#E65100] transition-colors"
+                id="view-db-btn"
+              >
+                Inspect Database
+              </a>
+              <a 
+                href="https://firebase.google.com/pricing#cloud-firestore" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-[#F5F2EB] hover:bg-[#EAE6DD] px-3 py-1 rounded-full text-[#5D554D] transition-colors"
+                id="view-pricing-btn"
+              >
+                Pricing Info
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className={`${isQuotaExceeded && currentView === 'admin' ? 'pt-[115px] md:pt-24' : 'pt-16'} min-h-[calc(100vh-64px)] transition-all`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView + (selectedProductId || '')}
