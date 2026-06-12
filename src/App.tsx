@@ -446,7 +446,7 @@ function AppContent() {
               />
             )}
             {currentView === 'help' && <Help siteConfig={siteConfig} />}
-            {currentView === 'admin' && <AdminPortal setView={navigateTo} usingContentful={usingContentful} />}
+            {currentView === 'admin' && <AdminPortal setView={navigateTo} />}
             {currentView === 'orders' && (
               <Orders 
                 products={products} 

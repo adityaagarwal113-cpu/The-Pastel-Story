@@ -56,3 +56,18 @@ export interface Review {
   status: 'pending' | 'approved' | 'rejected';
   timestamp: any;
 }
+
+export type Category = string;
+
+export interface MenuItem {
+  id: string;
+  category: Category;
+  price: number;
+  name: string;
+  description: string;
+  image: string;
+  rating?: number;
+  reviews?: number;
+  allowExtraCheese?: boolean;
+}
+

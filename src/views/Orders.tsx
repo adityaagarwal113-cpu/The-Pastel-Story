@@ -125,10 +125,12 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
     }
   };
 
-  const recommendations = products
-    .filter(p => !p.oos)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 4);
+  const recommendations = React.useMemo(() => {
+    return products
+      .filter(p => !p.oos)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 4);
+  }, [products]);
 
   if (!user) {
     return (

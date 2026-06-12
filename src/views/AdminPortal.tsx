@@ -12,9 +12,9 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, View } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { isContentfulConfigured } from '../lib/contentful';
 
-export function AdminPortal({ setView, usingContentful = false }: { setView: (v: View) => void; usingContentful?: boolean }) {
+export function AdminPortal({ setView }: { setView: (v: View) => void }) {
+  const usingContentful = false;
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'config' | 'reviews'>('products');
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,33 +53,7 @@ export function AdminPortal({ setView, usingContentful = false }: { setView: (v:
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          const MAX_DIM = 800;
-          if (width > MAX_DIM || height > MAX_DIM) {
-            if (width > height) {
-              height = Math.round((height * MAX_DIM) / width);
-              width = MAX_DIM;
-            } else {
-              width = Math.round((width * MAX_DIM) / height);
-              height = MAX_DIM;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(compressedBase64);
-        };
-        img.onerror = (error) => reject(error);
+        resolve(event.target?.result as string);
       };
       reader.onerror = (error) => reject(error);
     });
@@ -321,160 +295,18 @@ export function AdminPortal({ setView, usingContentful = false }: { setView: (v:
         >
           {activeTab === 'products' && (
             <div className="space-y-6">
-              {/* Contentful CMS Integration Dashboard */}
-              <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-cream shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-                  <div>
-                    <span className="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-gold block mb-1">Content Management System</span>
-                    <h3 className="font-serif text-2xl text-dark italic">Contentful Integration</h3>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {usingContentful ? (
-                      <span className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-100 text-green-600 rounded-full text-[0.65rem] font-bold tracking-wider uppercase">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                        Live Contentful Mode
-                      </span>
-                    ) : (
-                      <span className="px-4 py-2 bg-amber-50 border border-amber-100 text-amber-600 rounded-full text-[0.65rem] font-bold tracking-wider uppercase">
-                        Local Database Mode
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 space-y-4">
-                    <p className="text-sm text-mid leading-relaxed">
-                      {usingContentful 
-                        ? "Your store is currently connected to Contentful CMS. Product details, images, sizes, and pricing are retrieved dynamically with high-performance edge-cache queries."
-                        : "Your store is currently using the local Firebase Firestore database. Connect a Contentful space to enable professional headless CMS capabilities where you, or your content editors, can manage products from Contentful's official sleek dashboard."
-                      }
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                      {usingContentful && (
-                        <a 
-                          href="https://app.contentful.com" 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="px-6 py-3 bg-dark text-white rounded-xl text-[0.65rem] tracking-widest uppercase font-bold flex items-center gap-2 hover:bg-gold hover:scale-105 transition-all shadow-lg shadow-dark/10"
-                        >
-                          Open Contentful Console <ChevronRight className="w-3 h-3" />
-                        </a>
-                      )}
-                      
-                      <button 
-                        onClick={() => {
-                          const el = document.getElementById('contentful-guide-section');
-                          el?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="px-6 py-3 bg-cream border border-gold/10 text-gold rounded-xl text-[0.65rem] tracking-widest uppercase font-bold hover:bg-white transition-all"
-                      >
-                        Read Setup & Schema Model Guide
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-5 bg-cream/30 rounded-2xl border border-gold/5 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[0.6rem] uppercase tracking-widest font-bold text-mid mb-2">Space Configuration</p>
-                      <div className="space-y-1.5 font-mono text-[0.65rem]">
-                        <div className="flex justify-between border-b border-cream/50 pb-1.5">
-                          <span className="opacity-60">Library Status:</span>
-                          <span className="font-bold text-gold">contentful-sdk@v10</span>
-                        </div>
-                        <div className="flex justify-between border-b border-cream/50 pb-1.5">
-                          <span className="opacity-60">Credentials:</span>
-                          <span className={isContentfulConfigured() ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
-                            {isContentfulConfigured() ? "Loaded" : "Not Provided"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="opacity-60">Space ID Source:</span>
-                          <span className="opacity-80">ENV_VARIABLE</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Setup tutorial walkthrough */}
-                <div id="contentful-guide-section" className="mt-8 pt-8 border-t border-cream space-y-6">
-                  <h4 className="font-serif text-lg italic text-dark flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-gold" /> Step-by-Step Guideline: How to Add Products in Contentful
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs text-mid leading-relaxed">
-                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
-                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">1</div>
-                      <h5 className="font-bold text-dark">Define Content Model</h5>
-                      <p className="text-[0.7rem]">Go to <strong>Content Model</strong>, click <strong>Design Content Type</strong>, set name as <code>Product</code> and API ID as <code>product</code>.</p>
-                    </div>
-
-                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
-                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">2</div>
-                      <h5 className="font-bold text-dark">Configure Schema Fields</h5>
-                      <p className="text-[0.7rem]">Add all fields exactly matching the model. Ensure field IDs are in lowercase (e.g., <code>price</code>, <code>imgs</code>) to enable automatic mapping.</p>
-                    </div>
-
-                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
-                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">3</div>
-                      <h5 className="font-bold text-dark">Set Environment Vars</h5>
-                      <p className="text-[0.7rem]">Under <strong>Settings → API Keys</strong>, retrieve both <strong>Space ID</strong> and <strong>Delivery Token</strong>. Add them in setting variables.</p>
-                    </div>
-
-                    <div className="bg-cream/20 p-5 rounded-2xl border border-gold/5 space-y-2">
-                      <div className="w-8 h-8 rounded-full bg-dark text-white flex items-center justify-center font-bold font-mono">4</div>
-                      <h5 className="font-bold text-dark">Add Products & Publish</h5>
-                      <p className="text-[0.7rem]">Under <strong>Content</strong>, click <strong>Add Entry</strong>, populate product detail specifications, upload media, and click <strong>Publish</strong>!</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-cream/10 p-6 rounded-3xl border border-gold/10 space-y-4">
-                    <h5 className="text-[0.65rem] font-bold uppercase tracking-widest text-gold">FIELD Blueprints & CONFIGURATIONS</h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 font-mono text-[0.65rem] text-mid border-t border-cream/50 pt-4">
-                      <div><strong className="text-dark">id</strong> (Number, Required) — Unique index ID (e.g. <code>101</code>)</div>
-                      <div><strong className="text-dark">name</strong> (Short Text, Required) — Product title name</div>
-                      <div><strong className="text-dark">desc</strong> (Long Text) — Silk touch description</div>
-                      <div><strong className="text-dark">price</strong> (Number, Required) — Price in INR (e.g., <code>1899</code>)</div>
-                      <div><strong className="text-dark">oldPrice</strong> (Number) — Strike-through price for discounts</div>
-                      <div><strong className="text-dark">category</strong> (Short Text) — e.g. <code>coord</code>, <code>kurta</code>, <code>dress</code>, <code>suit</code></div>
-                      <div><strong className="text-dark">emoji</strong> (Short Text) — e.g. <code>🌸</code> or <code>🌿</code></div>
-                      <div><strong className="text-dark">color</strong> (Short Text) — e.g. <code>blush</code>, <code>sage</code>, <code>lavender</code></div>
-                      <div><strong className="text-dark">badge</strong> (Short Text) — Displays custom promotional badge (e.g. <code>Best Seller</code>)</div>
-                      <div><strong className="text-dark">sizes</strong> (List of Short Text) — Available sizes list (e.g., <code>S, M, L, XL</code>)</div>
-                      <div><strong className="text-dark">oos</strong> (Boolean, Required) — Set true to show Out of Stock flag</div>
-                      <div><strong className="text-dark">imgs</strong> (Media, Many Assets) — Premium gallery photos</div>
-                      <div><strong className="text-dark">videoUrl</strong> (Short Text or Media) — Optional catalog walk video url</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex justify-between items-center pt-4">
                 <h3 className="text-xl font-serif italic text-dark">Active Showcase Catalog ({products.length})</h3>
                 <div className="flex gap-4">
-                  {usingContentful ? (
-                    <a 
-                      href="https://app.contentful.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-gold text-white px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold shadow-lg shadow-gold/20 hover:scale-105 transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Add Product in Contentful
-                    </a>
-                  ) : (
-                    <>
-                      {products.length === 0 && (
-                        <button 
-                          onClick={handleSeedData}
-                          className="bg-cream border border-gold/20 text-gold px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold"
-                        >
-                          Seed From Constants
-                        </button>
-                      )}
+                  <>
+                    {products.length === 0 && (
+                      <button 
+                        onClick={handleSeedData}
+                        className="bg-cream border border-gold/20 text-gold px-6 py-3 rounded-xl flex items-center gap-2 text-[0.65rem] tracking-widest uppercase font-bold"
+                      >
+                        Seed From Constants
+                      </button>
+                    )}
                       <button 
                         onClick={() => {
                           const categories = siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara'];
@@ -496,8 +328,7 @@ export function AdminPortal({ setView, usingContentful = false }: { setView: (v:
                       >
                         <Plus className="w-4 h-4" /> Add Product
                       </button>
-                    </>
-                  )}
+                  </>
                 </div>
               </div>
 
@@ -1544,30 +1375,20 @@ export function AdminPortal({ setView, usingContentful = false }: { setView: (v:
                           className="hidden" 
                           multiple 
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             if (e.target.files) {
                               const files = Array.from(e.target.files) as File[];
-                              const newUploads = files.map(f => ({ 
-                                file: f, 
-                                preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
-                              }));
-                              
-                              const nextPendingFiles: {[key: string]: File} = {};
-                              newUploads.forEach(u => {
-                                nextPendingFiles[u.preview] = u.file;
-                              });
-
-                              setPendingFiles(prev => ({
-                                ...prev,
-                                ...nextPendingFiles
-                              }));
-
-                              requestAnimationFrame(() => {
+                              try {
+                                const base64s = await Promise.all(
+                                  files.map(file => handleFileUpload(file))
+                                );
                                 setIsEditingProduct(prev => prev ? {
                                   ...prev,
-                                  imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
+                                  imgs: [...prev.imgs, ...base64s]
                                 } : null);
-                              });
+                              } catch (err) {
+                                console.error('Error uploading product images:', err);
+                              }
                             }
                           }}
                         />
@@ -1577,43 +1398,33 @@ export function AdminPortal({ setView, usingContentful = false }: { setView: (v:
 
                   <div 
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
+                    onDrop={async (e) => {
                       e.preventDefault();
                       const rawFiles = Array.from(e.dataTransfer.files);
                       const imageFiles = rawFiles.filter((f: any) => f.type && f.type.startsWith('image/')) as File[];
                       const videoFiles = rawFiles.filter((f: any) => f.type && f.type.startsWith('video/')) as File[];
                       
                       if (imageFiles.length > 0) {
-                        const newUploads = imageFiles.map(f => ({ 
-                          file: f, 
-                          preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
-                        }));
-                        
-                        const nextPendingFiles: {[key: string]: File} = {};
-                        newUploads.forEach(u => {
-                          nextPendingFiles[u.preview] = u.file;
-                        });
-
-                        setPendingFiles(prev => ({
-                          ...prev,
-                          ...nextPendingFiles
-                        }));
-
-                        requestAnimationFrame(() => {
+                        try {
+                          const base64s = await Promise.all(
+                            imageFiles.map(file => handleFileUpload(file))
+                          );
                           setIsEditingProduct(prev => prev ? {
                             ...prev,
-                            imgs: [...prev.imgs, ...newUploads.map(u => u.preview)]
+                            imgs: [...prev.imgs, ...base64s]
                           } : null);
-                        });
+                        } catch (err) {
+                          console.error('Error uploading dropped images:', err);
+                        }
                       }
 
                       if (videoFiles.length > 0) {
                         const videoFile = videoFiles[0];
-                        const preview = URL.createObjectURL(new Blob([videoFile], { type: videoFile.type }));
-                        setPendingFiles(prev => ({ ...prev, [preview]: videoFile }));
-                        requestAnimationFrame(() => {
-                          setIsEditingProduct(prev => prev ? { ...prev, videoUrl: preview } : null);
-                        });
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setIsEditingProduct(prev => prev ? { ...prev, videoUrl: event.target?.result as string } : null);
+                        };
+                        reader.readAsDataURL(videoFile);
                       }
                     }}
                     className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-[2rem] text-center"
