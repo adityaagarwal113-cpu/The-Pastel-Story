@@ -34,7 +34,21 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
   useEffect(() => {
     sessionStorage.removeItem('pastel_filter_cat');
   }, []);
+
+  // Dynamically calculate the maximum price limit based on all products to prevent high-priced additions from being hidden
+  const maxPriceLimit = useMemo(() => {
+    if (!products || products.length === 0) return 5000;
+    const maxVal = Math.max(...products.map(p => p.price || 0));
+    return maxVal > 5000 ? Math.ceil(maxVal / 1000) * 1000 : 5000;
+  }, [products]);
+
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+
+  // Sync price limits initially or when maximum product price updates
+  useEffect(() => {
+    setPriceRange([0, maxPriceLimit]);
+  }, [maxPriceLimit]);
+
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<'relevance' | 'low' | 'high' | 'new'>('relevance');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -49,13 +63,13 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
     }
 
     if (selectedCategory !== 'all') {
-      list = list.filter(p => p.category === selectedCategory);
+      list = list.filter(p => p.category?.toLowerCase() === selectedCategory?.toLowerCase());
     }
 
     list = list.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
 
     if (selectedSizes.size > 0) {
-      list = list.filter(p => p.sizes.some(s => selectedSizes.has(s)));
+      list = list.filter(p => p.sizes && Array.isArray(p.sizes) && p.sizes.some(s => selectedSizes.has(s)));
     }
 
     if (sort === 'low') list.sort((a, b) => a.price - b.price);
@@ -74,7 +88,7 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
 
   const clearFilters = () => {
     setSelectedCategory('all');
-    setPriceRange([0, 5000]);
+    setPriceRange([0, maxPriceLimit]);
     setSelectedSizes(new Set());
     setSearch('');
   };
@@ -236,10 +250,11 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
                     <span className="text-gold">₹{priceRange[1]}</span>
                   </div>
                   <input 
+                    id="sidebar-price-cap-slider"
                     type="range" 
                     min="0" 
-                    max="5000" 
-                    step="100"
+                    max={maxPriceLimit} 
+                     step="100"
                     value={priceRange[1]}
                     onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                     className="w-full accent-gold bg-gold/10 rounded-full cursor-pointer appearance-none h-1"
@@ -361,9 +376,10 @@ export function Shop({ products, siteConfig, onOpen, onAddToCart, onWishlist, wi
                     <div className="bg-cream p-6 rounded-lg">
                       <div className="text-xl font-serif text-dark mb-4">₹{priceRange[1]}</div>
                       <input 
+                        id="mobile-price-cap-slider"
                         type="range" 
                         min="0" 
-                        max="5000" 
+                        max={maxPriceLimit} 
                         step="100"
                         value={priceRange[1]}
                         onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}

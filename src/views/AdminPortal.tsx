@@ -355,29 +355,31 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   return (
     <div className="bg-cream min-h-screen">
       <div className="max-w-7xl mx-auto p-4 sm:p-8">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-12 gap-6">
-          <div>
-            <h1 className="font-serif text-4xl text-dark italic mb-2">Admin Control Portal</h1>
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-10 gap-6">
+          <div className="text-center lg:text-left">
+            <h1 className="font-serif text-3xl sm:text-4xl text-dark italic mb-2">Admin Control Portal</h1>
             <p className="text-[0.65rem] text-mid tracking-[0.3em] uppercase">Managing The Pastel Story</p>
           </div>
-          <div className="flex gap-2 bg-white/50 p-1 rounded-2xl backdrop-blur-sm border border-white/20">
-            {[
-              { id: 'products', icon: Package, label: 'Products' },
-              { id: 'orders', icon: Tag, label: 'Orders' },
-              { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
-              { id: 'config', icon: Settings, label: 'Site Config' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[0.65rem] tracking-widest uppercase font-bold transition-all ${
-                  activeTab === tab.id ? 'bg-dark text-white shadow-xl' : 'text-mid hover:bg-white'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
+          <div className="w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 flex justify-center">
+            <div className="flex gap-1 bg-white/50 p-1 rounded-2xl backdrop-blur-sm border border-white/20 min-w-max">
+              {[
+                { id: 'products', icon: Package, label: 'Products' },
+                { id: 'orders', icon: Tag, label: 'Orders' },
+                { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
+                { id: 'config', icon: Settings, label: 'Site Config' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-1.5 px-3 py-2 sm:px-6 sm:py-3 rounded-xl text-[0.62rem] sm:text-[0.65rem] tracking-wider sm:tracking-widest uppercase font-bold transition-all ${
+                    activeTab === tab.id ? 'bg-dark text-white shadow-xl' : 'text-mid hover:bg-white'
+                  }`}
+                >
+                  <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="inline sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -441,18 +443,18 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gold/20 italic text-[0.6rem] uppercase tracking-widest font-bold">No Image</div>
                       )}
-                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all translate-x-0 sm:translate-x-4 sm:group-hover:translate-x-0">
                         <button 
                           onClick={() => setIsEditingProduct(p)}
-                          className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-dark hover:text-gold transition-colors shadow-lg"
+                          className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center text-dark hover:text-gold transition-colors shadow-lg"
                         >
-                          <Edit2 className="w-5 h-5" />
+                          <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                         <button 
                           onClick={() => handleDeleteProduct(p.id)}
-                          className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-400 hover:text-red-600 transition-colors shadow-lg"
+                          className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center text-red-500 hover:text-red-600 transition-colors shadow-lg"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
                     </div>
@@ -504,11 +506,11 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-cream">
-                <div className="p-8 border-b border-cream">
+              <div className="bg-white rounded-3xl sm:rounded-[2.5rem] shadow-sm overflow-hidden border border-cream">
+                <div className="p-5 sm:p-8 border-b border-cream">
                   <h3 className="text-xl font-serif italic text-dark">Recent Orders ({orders.length})</h3>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-cream/30 text-[0.6rem] uppercase tracking-widest text-mid font-bold">
                       <tr>
@@ -668,12 +670,183 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View Stacked Cards */}
+                <div className="block md:hidden divide-y divide-cream">
+                  {orders.filter(order => {
+                    const matchesSearch = 
+                      (order.orderId || '').toLowerCase().includes(orderSearch.toLowerCase()) ||
+                      (order.userName || '').toLowerCase().includes(orderSearch.toLowerCase()) ||
+                      (order.userPhone || '').toLowerCase().includes(orderSearch.toLowerCase());
+                    
+                    const matchesStatus = orderStatusFilter === 'All' || order.status === orderStatusFilter;
+                    
+                    return matchesSearch && matchesStatus;
+                  }).map(order => (
+                    <div key={order.id} className="p-5 space-y-4 text-xs font-sans">
+                      {/* Card Header: Order ID & Status */}
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="font-mono text-[0.62rem] opacity-50 font-bold uppercase">ID: {order.orderId}</p>
+                          <p className="text-[0.6rem] text-mid mt-0.5">
+                            {order.timestamp?.toDate 
+                              ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                              : (order.timestamp instanceof Date 
+                                ? order.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                                : 'Recent')}
+                            {' • '}
+                            {order.timestamp?.toDate 
+                              ? order.timestamp.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
+                              : (order.timestamp instanceof Date 
+                                ? order.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
+                                : 'Just now')}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[0.55rem] font-bold uppercase tracking-widest shrink-0 ${
+                          order.status === 'Order Placed' ? 'bg-blue-50 text-blue-500' :
+                          order.status === 'Processing' ? 'bg-orange-50 text-orange-500' :
+                          order.status === 'Shipped' ? 'bg-purple-50 text-purple-500' :
+                          'bg-green-50 text-green-500'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+
+                      {/* Customer info */}
+                      <div className="bg-cream/25 p-3 rounded-xl space-y-1 border border-cream">
+                        <p className="font-bold text-dark">{order.userName}</p>
+                        <p className="text-[0.65rem] opacity-70">📞 {order.userPhone}</p>
+                        <p className="text-[0.62rem] opacity-50 mt-1 leading-relaxed">📍 {order.address}, Pin: {order.pincode}</p>
+                      </div>
+
+                      {/* Items */}
+                      <div className="space-y-2">
+                        <p className="text-[0.6rem] uppercase tracking-widest text-mid font-black">Ordered Items</p>
+                        {(() => {
+                          try {
+                            const items = JSON.parse(order.items);
+                            return items.map((item: any, idx: number) => (
+                              <div key={idx} className="bg-cream/45 p-3 rounded-xl border border-gold/5 flex flex-col gap-1">
+                                <div className="flex justify-between items-start gap-2">
+                                  <p className="font-bold text-dark flex-1">{item.name}</p>
+                                  <p className="text-[0.65rem] text-gold font-bold bg-white px-2 py-0.5 rounded shadow-sm">x{item.qty}</p>
+                                </div>
+                                <p className="text-[0.55rem] uppercase font-bold tracking-widest text-mid">Size: {item.size}</p>
+                                {item.customization && (
+                                  <div className="mt-1 text-[0.65rem] text-dark/70 font-serif italic border-t border-gold/10 pt-1 leading-relaxed bg-white/20 p-2 rounded-lg">
+                                    <span className="text-[0.5rem] uppercase font-bold text-gold not-italic tracking-widest block mb-0.5">Customization Request:</span>
+                                    {item.customization}
+                                  </div>
+                                )}
+                              </div>
+                            ));
+                          } catch (e) {
+                            return <p className="text-[0.65rem] text-mid italic">{order.items}</p>;
+                          }
+                        })()}
+                      </div>
+
+                      {/* Footer: total, tracking updates, and quick status select */}
+                      <div className="pt-4 border-t border-cream space-y-3">
+                        <div className="flex justify-between items-center text-sm font-bold">
+                          <span className="text-mid font-normal">Order Total:</span>
+                          <span className="text-dark">₹{order.total.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        {/* Inline Tracking section */}
+                        <div className="bg-cream/10 p-3 rounded-xl border border-cream/50">
+                          {editingTracking?.id === order.id ? (
+                            <div className="flex flex-col gap-2">
+                              <input 
+                                type="text"
+                                placeholder="Tracking ID"
+                                value={editingTracking.trackingId}
+                                onChange={(e) => setEditingTracking({...editingTracking, trackingId: e.target.value})}
+                                className="w-full text-[0.65rem] p-2 bg-white border border-gold/10 rounded-lg outline-none"
+                              />
+                              <input 
+                                type="text"
+                                placeholder="Tracking Link"
+                                value={editingTracking.trackingLink}
+                                onChange={(e) => setEditingTracking({...editingTracking, trackingLink: e.target.value})}
+                                className="w-full text-[0.65rem] p-2 bg-white border border-gold/10 rounded-lg outline-none"
+                              />
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={async () => {
+                                    try {
+                                      await updateDoc(doc(db, 'orders', order.id), {
+                                        trackingId: editingTracking.trackingId,
+                                        trackingLink: editingTracking.trackingLink
+                                      });
+                                      setEditingTracking(null);
+                                    } catch (error) {
+                                      handleFirestoreError(error, OperationType.UPDATE, `orders/${order.id}`);
+                                    }
+                                  }}
+                                  className="text-[0.6rem] bg-gold text-white px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest"
+                                >
+                                  Save
+                                </button>
+                                <button 
+                                  onClick={() => setEditingTracking(null)}
+                                  className="text-[0.6rem] bg-cream text-mid px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : order.trackingId ? (
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-[0.6rem] font-bold text-gold uppercase">Track ID: {order.trackingId}</p>
+                                <a href={order.trackingLink} target="_blank" rel="noreferrer" className="text-[0.55rem] text-mid hover:underline italic">Track Delivery</a>
+                              </div>
+                              <button 
+                                onClick={() => setEditingTracking({ id: order.id, trackingId: order.trackingId || '', trackingLink: order.trackingLink || '' })}
+                                className="p-1 px-2.5 bg-white shadow-sm border border-gold/15 rounded-lg flex items-center gap-1.5 text-[0.55rem] font-bold uppercase text-gold"
+                              >
+                                <Edit2 className="w-2.5 h-2.5" /> Edit
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setEditingTracking({ id: order.id, trackingId: '', trackingLink: '' })}
+                              className="w-full text-center py-2 text-gold hover:underline text-[0.6rem] uppercase tracking-widest font-black"
+                            >
+                              + Add Tracking Info
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Status Select dropdown */}
+                        <div className="flex items-center gap-2">
+                          <label className="text-[0.55rem] uppercase tracking-widest text-mid font-black whitespace-nowrap">Change Status:</label>
+                          <select 
+                            value={order.status}
+                            onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                            className="bg-cream/40 text-[0.65rem] font-bold p-2 rounded-xl outline-none border border-gold/5 flex-1"
+                          >
+                            <option value="Order Placed">Placed</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {orders.length === 0 && (
+                    <p className="text-center p-8 text-mid italic">No orders found.</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        
 
           {activeTab === 'reviews' && (
             <div className="space-y-6">
@@ -768,7 +941,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           "{review.comment}"
                           <button 
                             onClick={() => setIsEditingReview(review)}
-                            className="absolute top-2 right-2 p-1.5 bg-white opacity-0 group-hover:opacity-100 transition-opacity rounded-lg shadow-sm border border-gold/10"
+                            className="absolute top-2 right-2 p-1.5 bg-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-lg shadow-sm border border-gold/10"
                           >
                             <Edit2 className="w-3 h-3 text-gold" />
                           </button>
@@ -870,9 +1043,10 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           />
                           <button 
                             onClick={() => setSiteConfig({...siteConfig, heroImage: ''})}
-                            className="absolute inset-0 bg-red-500/60 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-xs uppercase tracking-widest"
+                            className="absolute top-3 right-3 w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            title="Remove Image"
                           >
-                            <Trash2 className="w-5 h-5 mr-2" /> Remove Image
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       )}
@@ -979,9 +1153,10 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                                 const newImgs = siteConfig.galleryImages.filter((_: any, i: number) => i !== idx);
                                 setSiteConfig({...siteConfig, galleryImages: newImgs});
                               }}
-                              className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                              className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              title="Remove Image"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -1262,7 +1437,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                               const newCats = (siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara']).filter((_: any, i: number) => i !== idx);
                               setSiteConfig({...siteConfig, categories: newCats});
                             }}
-                            className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-red-400 hover:text-red-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                             title="Delete Category"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1320,7 +1495,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       {/* Product Edit Modal */}
       <AnimatePresence>
         {isEditingProduct && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-2 sm:p-4">
             <motion.div 
                initial={{ opacity: 0 }} 
                animate={{ opacity: 1 }} 
@@ -1332,13 +1507,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-4xl bg-white rounded-[3rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+              className="relative w-full max-w-4xl bg-white rounded-3xl sm:rounded-[3rem] shadow-2xl overflow-hidden max-h-[95vh] sm:max-h-[90vh] flex flex-col m-1 sm:m-4"
             >
-              <div className="p-8 border-b border-cream flex justify-between items-center">
-                <h2 className="font-serif text-3xl italic">Edit Product</h2>
+              <div className="p-5 sm:p-8 border-b border-cream flex justify-between items-center">
+                <h2 className="font-serif text-2xl sm:text-3xl italic">Edit Product</h2>
                 <button onClick={() => setIsEditingProduct(null)} className="p-2 hover:bg-cream rounded-full transition-colors"><X/></button>
               </div>
-              <div className="p-8 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="p-5 sm:p-8 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
                 <div className="space-y-6">
                   <div className="space-y-1">
                     <label className="text-[0.6rem] uppercase tracking-widest font-bold text-mid">Name</label>
@@ -1500,9 +1675,10 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                                 const newImgs = isEditingProduct.imgs.filter((_, i) => i !== idx);
                                 setIsEditingProduct({...isEditingProduct, imgs: newImgs});
                               }}
-                              className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                              className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              title="Remove Image"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>

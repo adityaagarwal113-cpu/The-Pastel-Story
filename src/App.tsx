@@ -117,6 +117,26 @@ function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentView, selectedProductId]);
 
+  // Parse deep product links from URL query parameters (e.g. ?product=123)
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const prodIdStr = params.get('product');
+      if (prodIdStr) {
+        const prodId = parseInt(prodIdStr, 10);
+        const prod = products.find(p => p.id === prodId);
+        if (prod) {
+          setSelectedProductId(prodId);
+          setViewStack(['home', 'pdp']);
+          
+          // Clean up the URL query parameter so going back or reloading doesn't trap the user
+          const newUrl = window.location.origin + window.location.pathname + window.location.hash;
+          window.history.replaceState({ viewStack: ['home', 'pdp'] }, '', newUrl);
+        }
+      }
+    }
+  }, [products]);
+
   // Cloud Sync: Load on login
   useEffect(() => {
     if (user) {
@@ -442,6 +462,9 @@ function AppContent() {
             {currentView === 'pdp' && selectedProductId && (
               <ProductDetail 
                 product={products.find(p => p.id === selectedProductId)!} 
+                products={products}
+                onOpenProduct={openProduct}
+                wishlist={wishlist}
                 siteConfig={siteConfig}
                 onAddToCart={addToCart} 
                 onWishlist={toggleWishlist}

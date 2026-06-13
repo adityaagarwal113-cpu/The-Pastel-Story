@@ -1,13 +1,17 @@
 import React, { useState, useRef, CSSProperties, MouseEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, Truck, RotateCcw, ShieldCheck, Star, X, Info, MessageSquare, CheckCircle2, ChevronRight, Share2, Copy, Mail, Send, ExternalLink } from 'lucide-react';
 import { Product, View, CartItem } from '../types';
 import { CATEGORIES, COLORS } from '../constants';
 import { Footer } from '../components/Footer';
 import { ReviewSection } from '../components/ReviewSection';
+import { ProductCard } from '../components/ProductCard';
 
 interface ProductDetailProps {
   product: Product;
+  products: Product[];
+  onOpenProduct: (id: number) => void;
+  wishlist: number[];
   siteConfig: any;
   onAddToCart: (id: number, size: string, customization?: string) => void;
   onWishlist: (id: number) => void;
@@ -16,7 +20,7 @@ interface ProductDetailProps {
   initialEditItem?: CartItem;
 }
 
-export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
+export function ProductDetail({ product, products, onOpenProduct, wishlist, siteConfig, onAddToCart, onWishlist, isWishlisted, setView, initialEditItem }: ProductDetailProps) {
   const [mainImg, setMainImg] = useState<string | null>(product.imgs[0]);
   const [showVideo, setShowVideo] = useState(false);
   const [selectedSize, setSelectedSize] = useState(initialEditItem?.size || product.sizes[0] || 'One Size');
@@ -29,6 +33,84 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
   const [zoomStyle, setZoomStyle] = useState<CSSProperties>({ display: 'none' });
   const zoomRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
+
+  const [showShareToast, setShowShareToast] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([]);
+
+  // Track product view and construct Recently Viewed list
+  useEffect(() => {
+    if (!product || !products) return;
+
+    const RECENTLY_VIEWED_KEY = 'pastel_recent_v1';
+    let ids: number[] = [];
+    const saved = localStorage.getItem(RECENTLY_VIEWED_KEY);
+    if (saved) {
+      try {
+        ids = JSON.parse(saved);
+        if (!Array.isArray(ids)) ids = [];
+      } catch (e) {
+        ids = [];
+      }
+    }
+
+    // Filter out current, then append at the front
+    ids = ids.filter(id => id !== product.id);
+    ids.unshift(product.id);
+
+    // Limit to latest 6 products watched
+    const limitedIds = ids.slice(0, 6);
+    localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(limitedIds));
+
+    // Resolve products to display (excluding current product)
+    const displayIds = limitedIds.filter(id => id !== product.id);
+    const resolved = displayIds
+      .map(id => products.find(p => p.id === id))
+      .filter((p): p is Product => !!p);
+
+    setRecentlyViewed(resolved);
+  }, [product?.id, products]);
+
+  // Share system helper URLs & Copy fallback
+  const productLink = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+  const shareTitle = `Discover this silhouette: ${product.name}`;
+  const shareText = `Check out "${product.name}" from The Pastel Story. Custom fitting and beautiful hand-chosen artisan silhouettes!`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(productLink)
+      .then(() => {
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Could not copy product link:', err);
+      });
+  };
+
+  const shareViaNative = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: shareText,
+          url: productLink
+        });
+      } catch (err) {
+        console.warn('Native share failed:', err);
+      }
+    }
+  };
+
+  const handleCardAddToCart = (id: number) => {
+    const rp = products.find(p => p.id === id);
+    if (rp) {
+      onAddToCart(id, rp.sizes[0] || 'S');
+    }
+  };
+
+  const handleShare = () => {
+    setIsShareModalOpen(true);
+  };
 
   useEffect(() => {
     if (initialEditItem) {
@@ -317,6 +399,14 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
               >
                 <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} /> {isWishlisted ? 'Saved in Journal' : 'Add to Journal'}
               </button>
+
+              <button 
+                id="share-product-btn"
+                onClick={handleShare}
+                className="w-full py-5 text-micro tracking-[0.4em] uppercase border border-gold/10 hover:border-gold hover:text-gold transition-all duration-500 bg-white/40 flex items-center justify-center gap-4"
+              >
+                <Share2 className="w-4 h-4" /> Share Silhouette
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 border-t border-gold/5 opacity-60">
@@ -343,6 +433,28 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
           </div>
           <ReviewSection productId={product.id} />
         </div>
+
+        {/* Recently Viewed Section */}
+        {recentlyViewed.length > 0 && (
+          <div className="mt-32 pt-20 border-t border-gold/10">
+            <div className="flex items-center gap-8 mb-16 max-w-7xl mx-auto">
+              <h2 className="font-serif text-3xl sm:text-4xl text-dark italic">Recently Viewed Silhouettes</h2>
+              <div className="h-px flex-1 bg-gold/10" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
+              {recentlyViewed.map(rp => (
+                <ProductCard 
+                  key={rp.id}
+                  product={rp}
+                  onOpen={onOpenProduct}
+                  onAddToCart={handleCardAddToCart}
+                  onWishlist={onWishlist}
+                  isWishlisted={wishlist.includes(rp.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Footer setView={setView} siteConfig={siteConfig} />
@@ -488,6 +600,156 @@ export function ProductDetail({ product, siteConfig, onAddToCart, onWishlist, is
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Silhouette Modal/Tray */}
+      <AnimatePresence>
+        {isShareModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsShareModalOpen(false)}
+              className="absolute inset-0 bg-dark/25 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md bg-[#faf8f6] rounded-3xl shadow-2xl overflow-hidden border border-gold/15 p-8"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-serif text-xl text-dark italic">Share Silhouette</h3>
+                  <p className="text-[0.6rem] text-mid uppercase tracking-widest mt-1 font-semibold">Spread the artistry of "{product.name}"</p>
+                </div>
+                <button 
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="p-1.5 hover:bg-cream/80 border border-gold/10 rounded-full transition-colors group"
+                >
+                  <X className="w-4 h-4 text-dark transition-transform group-hover:rotate-90" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {/* WhatsApp Option */}
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + productLink)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 bg-white/60 hover:bg-white border border-gold/10 hover:border-gold/30 rounded-2xl transition-all duration-300 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center font-bold">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xs font-bold text-dark uppercase tracking-wider">WhatsApp</p>
+                    <p className="text-[0.65rem] text-mid italic">Share directly with your contacts</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-mid/30 group-hover:text-gold transition-colors" />
+                </a>
+
+                {/* Email Option */}
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText + '\n\n' + productLink)}`}
+                  className="flex items-center gap-4 p-4 bg-white/60 hover:bg-white border border-gold/10 hover:border-gold/30 rounded-2xl transition-all duration-300 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xs font-bold text-dark uppercase tracking-wider">Email Story</p>
+                    <p className="text-[0.65rem] text-mid italic">Send detailed silhouette recommendations</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-mid/30 group-hover:text-gold transition-colors" />
+                </a>
+
+                {/* Twitter / X Feed */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(productLink)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 bg-white/60 hover:bg-white border border-gold/10 hover:border-gold/30 rounded-2xl transition-all duration-300 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xs font-bold text-dark uppercase tracking-wider">X / Twitter Feed</p>
+                    <p className="text-[0.65rem] text-mid italic">Post to your public collection scroll</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-mid/30 group-hover:text-gold transition-colors" />
+                </a>
+
+                {/* Facebook Share */}
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productLink)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 bg-white/60 hover:bg-white border border-gold/10 hover:border-gold/30 rounded-2xl transition-all duration-300 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <ExternalLink className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xs font-bold text-dark uppercase tracking-wider">Facebook</p>
+                    <p className="text-[0.65rem] text-mid italic">Share to your page or timeline</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-mid/30 group-hover:text-gold transition-colors" />
+                </a>
+
+                {/* Copy Link Option */}
+                <button
+                  onClick={() => {
+                    copyToClipboard();
+                    setIsShareModalOpen(false);
+                  }}
+                  className="w-full flex items-center gap-4 p-4 bg-white/60 hover:bg-white border border-gold/10 hover:border-gold/30 rounded-2xl transition-all duration-300 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-cream text-gold flex items-center justify-center font-bold">
+                    <Copy className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xs font-bold text-dark uppercase tracking-wider">Copy Silhouette Link</p>
+                    <p className="text-[0.65rem] text-mid italic">Saves link directly to your clipboard</p>
+                  </div>
+                  <Copy className="w-4 h-4 text-mid/30 group-hover:text-gold transition-colors" />
+                </button>
+              </div>
+
+              {typeof navigator !== 'undefined' && navigator.share && (
+                <div className="mt-6 pt-4 border-t border-gold/5 flex justify-center">
+                  <button 
+                    onClick={() => {
+                      shareViaNative();
+                      setIsShareModalOpen(false);
+                    }}
+                    className="px-6 py-2.5 text-[0.6rem] uppercase tracking-widest font-bold text-gold hover:text-dark flex items-center gap-2 border border-gold/20 hover:border-gold rounded-full transition-colors"
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> Open Native Share Menu
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Local Share Toast */}
+      <AnimatePresence>
+        {showShareToast && (
+          <motion.div
+            id="share-toast"
+            initial={{ opacity: 0, y: 30, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 30, x: '-50%' }}
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-dark/95 text-cream px-6 py-3.5 rounded-full shadow-2xl z-[200] text-[0.65rem] uppercase tracking-[0.25em] font-bold flex items-center gap-3 backdrop-blur-sm border border-gold/15"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-gold" />
+            <span>Link copied</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
