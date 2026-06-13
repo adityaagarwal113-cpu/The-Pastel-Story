@@ -66,6 +66,19 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     }
   };
 
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const [adminToast, setAdminToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setAdminToast(msg);
+    setTimeout(() => setAdminToast(null), 3000);
+  };
+
   const handleSeedData = async () => {
     try {
       const { DEFAULT_PRODUCTS } = await import('../constants');
@@ -75,7 +88,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       // Also seed site config if not exists
       const configRef = doc(db, 'site_config', 'main');
       await setDoc(configRef, siteConfig);
-      alert('Database seeded with default products!');
+      showToast('Database seeded with default products!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'products/site_config');
     }
@@ -235,7 +248,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
         ...dataToSave
       }));
 
-      alert(`${sectionName} saved successfully!`);
+      showToast(`${sectionName} saved successfully!`);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `site_config/main/${sectionName}`);
     } finally {
@@ -277,7 +290,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       await setDoc(doc(db, 'site_config', 'main'), configToSave);
       setSiteConfig(configToSave);
       setPendingFiles({});
-      alert('Config saved successfully!');
+      showToast('Config saved successfully!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'site_config/main');
     } finally {
@@ -316,6 +329,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       await setDoc(pDoc, productToSave);
       setIsEditingProduct(null);
       setPendingFiles({});
+      showToast('Silhouette saved successfully!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `products/${p.id}`);
     } finally {
@@ -323,14 +337,20 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     }
   };
 
-  const handleDeleteProduct = async (id: number) => {
-    if (window.confirm('Delete this product?')) {
-      try {
-        await deleteDoc(doc(db, 'products', id.toString()));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
+  const handleDeleteProduct = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Silhouette',
+      message: 'Are you sure you want to permanently delete this product from the master showcase? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'products', id.toString()));
+          showToast('Product deleted successfully');
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
+        }
       }
-    }
+    });
   };
 
   const handleUpdateReview = async (reviewId: string, updates: any) => {
@@ -342,14 +362,20 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     }
   };
 
-  const handleDeleteReview = async (reviewId: string) => {
-    if (window.confirm('Delete this review permanently?')) {
-      try {
-        await deleteDoc(doc(db, 'reviews', reviewId));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `reviews/${reviewId}`);
+  const handleDeleteReview = (reviewId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Review',
+      message: 'Are you sure you want to permanently delete this client story review? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'reviews', reviewId));
+          showToast('Review deleted successfully');
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, `reviews/${reviewId}`);
+        }
       }
-    }
+    });
   };
 
   return (
@@ -1809,9 +1835,15 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     {pendingUploads > 0 && (
                       <button 
                         onClick={() => {
-                          if (window.confirm('Some uploads are taking too long. Reset queue and try to save anyway?')) {
-                            setPendingUploads(0);
-                          }
+                          setConfirmModal({
+                            isOpen: true,
+                            title: 'Force Reset Upload Queue',
+                            message: 'Some uploads seem stuck. Would you like to force-reset the queue and proceed with saving what was successfully uploaded?',
+                            onConfirm: () => {
+                              setPendingUploads(0);
+                              showToast('Queue force-reset. You can now try to save.');
+                            }
+                          });
                         }}
                         className="text-[0.55rem] text-mid uppercase tracking-[0.2em] font-black underline hover:text-gold"
                       >
@@ -1823,6 +1855,64 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Elegant Custom Confirmation Modal */}
+      <AnimatePresence>
+        {confirmModal && confirmModal.isOpen && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmModal(null)}
+              className="absolute inset-0 bg-dark/25 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-sm bg-[#faf8f6] rounded-3xl shadow-2xl overflow-hidden border border-gold/15 p-8 text-center"
+            >
+              <div className="mb-6">
+                <h3 className="font-serif text-xl text-dark italic">{confirmModal.title}</h3>
+                <p className="text-xs text-mid mt-3 leading-relaxed">{confirmModal.message}</p>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="px-6 py-3 rounded-xl border border-gold/15 text-mid hover:text-dark hover:bg-cream/40 transition-all text-xs font-bold uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(null);
+                  }}
+                  className="px-6 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-all text-xs font-bold uppercase tracking-wider shadow-lg shadow-red-500/10"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Elegant Custom Toast Notification */}
+      <AnimatePresence>
+        {adminToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 30, x: '-50%' }}
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-dark/95 text-cream px-6 py-3.5 rounded-full shadow-2xl z-[300] text-[0.65rem] uppercase tracking-[0.25em] font-bold flex items-center gap-3 backdrop-blur-sm border border-gold/15"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-gold" />
+            <span>{adminToast}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
