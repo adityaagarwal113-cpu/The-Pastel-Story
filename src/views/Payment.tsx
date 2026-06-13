@@ -111,16 +111,16 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
   };
 
   const handleConfirmOrder = async () => {
-    if (!user || !proofFile) return;
+    if (!user) return;
 
     setIsSubmitting(true);
     setPaymentState('PROCESSING');
-    setSubmissionStatus('Compressing Receipt...');
+    setSubmissionStatus(proofFile ? 'Compressing Receipt...' : 'Placing Order...');
     
     try {
       // 1. Start the background process (asynchronously in parallel)
       const dbWritePromise = (async () => {
-        const downloadUrl = await compressAndEncodeToBase64(proofFile);
+        const downloadUrl = proofFile ? await compressAndEncodeToBase64(proofFile) : '';
         
         const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
         
@@ -177,25 +177,18 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
         return orderId;
       })();
 
-      // 2. Minimum animation duration so the user feels secure and animations can breathe (2.2 seconds)
-      const simulationDuration = 2200;
+      // 2. Await the direct Firestore upload instantly without any artificial simulation delay
+      const orderId = await dbWritePromise;
 
-      // 3. Run both the Firestore write and simulated delay concurrently
-      const [orderId] = await Promise.all([
-        dbWritePromise,
-        new Promise<void>((resolve) => setTimeout(resolve, simulationDuration))
-      ]);
-
-      // 4. Upgrade visual states to SUCCESS to play the checkmark check animation in the overlay
+      // 3. Play a very quick checkout completed state transition (400ms) for visual feedback
       setPaymentState('SUCCESS');
       
-      // Keep displaying the green success checkmark before finally redirecting/rendering orderSuccess state
       setTimeout(() => {
         setOrderSuccess(orderId);
         onClearCart();
         setIsSubmitting(false);
         setPaymentState('IDLE');
-      }, 1500);
+      }, 400);
 
     } catch (error) {
       console.error("Order initiation error:", error);
@@ -358,7 +351,7 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
               {/* Upload Section */}
               <div className="space-y-6">
                 <h2 className="text-[0.7rem] uppercase tracking-[0.4em] font-bold text-gold flex items-center gap-2">
-                  <Upload className="w-4 h-4" /> 2. Upload Proof
+                  <Upload className="w-4 h-4" /> 2. Upload Proof (Optional)
                 </h2>
                 
                 <div className="space-y-6">
@@ -379,8 +372,8 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                       <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                         <Upload className="w-6 h-6 text-gold" />
                       </div>
-                      <p className="font-bold text-[0.65rem] tracking-widest uppercase mb-1">Click to Upload Payment Proof</p>
-                      <p className="text-[0.55rem] text-white/30 italic">Screenshots verified via Cloudinary</p>
+                      <p className="font-bold text-[0.65rem] tracking-widest uppercase mb-1">Upload Receipt (Optional)</p>
+                      <p className="text-[0.55rem] text-white/30 italic">Directly place order below without uploading</p>
                     </label>
                   ) : (
                     <div className="relative rounded-2xl overflow-hidden border border-gold/20 shadow-lg">
@@ -405,9 +398,9 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                   )}
 
                   <button 
-                    disabled={isSubmitting || !proofFile}
+                    disabled={isSubmitting}
                     onClick={handleConfirmOrder}
-                    className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 disabled:opacity-30 disabled:grayscale transition-all"
+                    className="w-full py-5 bg-gold text-white rounded-xl font-bold text-xs tracking-[0.2em] uppercase shadow-2xl shadow-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex flex-col items-center justify-center gap-2 disabled:opacity-30 disabled:grayscale transition-all cursor-pointer"
                   >
                     {isSubmitting ? (
                       <>
@@ -415,7 +408,7 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
                         <span className="text-[0.5rem] tracking-widest">{submissionStatus}</span>
                       </>
                     ) : (
-                      <span>Place Order Now</span>
+                      <span>Place Order Directly</span>
                     )}
                   </button>
                 </div>

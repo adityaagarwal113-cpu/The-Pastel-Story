@@ -107,7 +107,19 @@ export function Cart({
        return;
     }
 
-    const itemsString = JSON.stringify(selectedItems);
+    const sanitizedItems = selectedItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      emoji: item.emoji || '',
+      color: item.color || '',
+      img: '', // Omit large base64/custom image data here; Orders views fetch the live product image or fall back correctly
+      size: item.size,
+      qty: item.qty,
+      customization: item.customization || ''
+    }));
+
+    const itemsString = JSON.stringify(sanitizedItems);
     
     setCheckoutData({
       ...formData,

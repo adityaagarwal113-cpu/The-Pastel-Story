@@ -102,9 +102,9 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
               <motion.div
                 animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
                 transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 lg:-left-20 w-24 h-32 md:w-32 md:h-40 glass p-1 luxury-shadow z-20"
+                className="absolute -bottom-4 md:-bottom-10 left-4 sm:-left-4 md:-left-10 lg:-left-20 w-24 h-32 md:w-32 md:h-44 bg-white p-2 pb-6 md:p-3 md:pb-10 shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300 z-20 rounded-sm"
               >
-                <div className="h-full w-full overflow-hidden">
+                <div className="h-full w-full overflow-hidden bg-cream/10 rounded-sm">
                    <img 
                     src={siteConfig.heroSmallImage || "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&q=80"} 
                     alt="Detail" 
@@ -113,6 +113,12 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                     loading="lazy"
                     decoding="async"
                    />
+                </div>
+                {/* Polaroid Signature/Caption */}
+                <div className="absolute bottom-1 md:bottom-2 left-0 right-0 text-center">
+                  <span className="font-serif text-[0.45rem] md:text-[0.6rem] text-dark/60 tracking-widest italic select-none">
+                    Shiwani's Coll.
+                  </span>
                 </div>
               </motion.div>
             </motion.div>
