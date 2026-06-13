@@ -29,6 +29,8 @@ export const DEFAULT_SITE_CONFIG = {
   aboutVision: 'The Pastel Story was born from a simple desire: to bring back the whisper of elegance in an era of loud trends.',
   aboutSecondary: 'Every garment is a labor of love. We use only the finest cottons, linen blends, and silk silhouettes that feel like a second skin. Our fabrics are chosen not just for their appearance, but for their longevity and breathability.',
   aboutImage: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80',
+  narrativeImage: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=800&q=80',
+  aboutBannerImage: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=1400&q=80',
   quoteText: '"Every colour in our palette is a feeling — chosen for women who embrace softness as their superpower."',
   quoteAuthor: 'Shiwani, Founder of The Pastel Story',
   categories: ['kurta', 'coord', 'dress', 'suit', 'sharara']

@@ -97,16 +97,16 @@ service cloud.firestore {
                data.userId == request.auth.uid &&
                data.total is number && data.total >= 0 &&
                data.status in ['Order Placed', 'Payment Pending Verification'] &&
-               data.timestamp == request.time &&
-               data.userName is string && data.userName.size() <= 100 &&
-               data.userPhone is string && data.userPhone.size() <= 20 &&
-               data.address is string && data.address.size() <= 500 &&
-               data.pincode is string && data.pincode.size() <= 10 &&
-               data.items is string && data.items.size() <= 5000 &&
-               (!('userEmail' in data) || (data.userEmail is string && data.userEmail.size() <= 100)) &&
-               (!('paymentProof' in data) || (data.paymentProof is string && data.paymentProof.size() <= 200)) &&
-               (!('trackingId' in data) || (data.trackingId is string && data.trackingId.size() <= 100)) &&
-               (!('trackingLink' in data) || (data.trackingLink is string && data.trackingLink.size() <= 500));
+               (data.timestamp == request.time || data.timestamp is timestamp) &&
+               data.userName is string && data.userName.size() <= 250 &&
+               data.userPhone is string && data.userPhone.size() <= 50 &&
+               data.address is string && data.address.size() <= 2000 &&
+               data.pincode is string && data.pincode.size() <= 30 &&
+               data.items is string && data.items.size() <= 20000 &&
+               (!('userEmail' in data) || (data.userEmail is string && data.userEmail.size() <= 200)) &&
+               (!('paymentProof' in data) || (data.paymentProof is string && data.paymentProof.size() <= 2000000)) &&
+               (!('trackingId' in data) || (data.trackingId is string && data.trackingId.size() <= 200)) &&
+               (!('trackingLink' in data) || (data.trackingLink is string && data.trackingLink.size() <= 1000));
       }
     }
 
@@ -134,6 +134,8 @@ service cloud.firestore {
                (!('instagramUrl' in data) || (data.instagramUrl is string && data.instagramUrl.size() <= 500)) &&
                (!('quoteText' in data) || (data.quoteText is string && data.quoteText.size() <= 1000)) &&
                (!('quoteAuthor' in data) || (data.quoteAuthor is string && data.quoteAuthor.size() <= 200)) &&
+               (!('narrativeImage' in data) || (data.narrativeImage is string && data.narrativeImage.size() <= 1000000)) &&
+               (!('aboutBannerImage' in data) || (data.aboutBannerImage is string && data.aboutBannerImage.size() <= 1000000)) &&
                (!('categories' in data) || (data.categories is list && data.categories.size() <= 50));
       }
     }

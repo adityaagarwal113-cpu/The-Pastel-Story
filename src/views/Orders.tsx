@@ -50,19 +50,43 @@ export function Orders({ products, onOpenProduct, onAddToCart, setView, siteConf
 
     const fetchOrders = async () => {
       try {
-        const q = query(
-          collection(db, 'orders'),
-          where('userId', '==', user.uid),
-          orderBy('timestamp', 'desc')
-        );
-        const querySnapshot = await getDocs(q);
-        const fetchedOrders: Order[] = [];
-        querySnapshot.forEach((doc) => {
-          fetchedOrders.push({ id: doc.id, ...doc.data() } as Order);
-        });
-        setOrders(fetchedOrders);
+        if (user.uid.startsWith('guest_')) {
+          const stored = localStorage.getItem('local_orders') || '[]';
+          let parsed = JSON.parse(stored);
+          if (!Array.isArray(parsed)) parsed = [];
+          const guestOrders = parsed.filter((o: any) => o.userId === user.uid).map((o: any) => ({
+            id: o.orderId,
+            ...o
+          }));
+          setOrders(guestOrders);
+        } else {
+          const q = query(
+            collection(db, 'orders'),
+            where('userId', '==', user.uid),
+            orderBy('timestamp', 'desc')
+          );
+          const querySnapshot = await getDocs(q);
+          const fetchedOrders: Order[] = [];
+          querySnapshot.forEach((doc) => {
+            fetchedOrders.push({ id: doc.id, ...doc.data() } as Order);
+          });
+          setOrders(fetchedOrders);
+        }
       } catch (error) {
         console.error("Error fetching orders:", error);
+        // Fallback to local_orders if firestore queries blocked or network failed
+        try {
+          const stored = localStorage.getItem('local_orders') || '[]';
+          let parsed = JSON.parse(stored);
+          if (!Array.isArray(parsed)) parsed = [];
+          const localBackup = parsed.filter((o: any) => o.userId === user.uid).map((o: any) => ({
+            id: o.orderId,
+            ...o
+          }));
+          setOrders(localBackup);
+        } catch (e) {
+          // Ignore
+        }
       } finally {
         setLoading(false);
       }

@@ -11,7 +11,7 @@ interface AuthModalProps {
 type AuthMode = 'signin' | 'signup';
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest } = useAuth();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,6 +49,89 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
+  const handleGuestSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInAsGuest();
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during guest authentication');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getFriendlyErrorMessage = (errorString: string | null) => {
+    if (!errorString) return null;
+    
+    let mainError = errorString;
+    try {
+      const startIdx = errorString.indexOf('{');
+      const endIdx = errorString.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        const jsonCandidate = errorString.substring(startIdx, endIdx + 1);
+        const parsed = JSON.parse(jsonCandidate);
+        if (parsed.error) {
+          mainError = parsed.error;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+
+    if (errorString.includes('auth/network-request-failed') || mainError.includes('auth/network-request-failed')) {
+      return {
+        title: 'Connection Security Block',
+        desc: 'Unable to connect to authentication servers. On Windows 7, this is due to expired operating system security certificates. On mobiles, it can be due to third-party cookie/popup tracking restrictions. You can use Guest Login to bypass this instantly!',
+        points: [
+          'Windows 7 fix: Use Firefox browser which has its own built-in certificated store.',
+          'Mobile/Tablet fix: Open the preview directly as a full tab by clicking "Open in a new tab" at the top right.',
+          'Bypass Fix: Click the "Login as Guest (Bypass Error)" button below to enter the shop instantly!'
+        ],
+        isNetwork: true
+      };
+    }
+
+    if (errorString.includes('auth/unauthorized-domain') || mainError.includes('auth/unauthorized-domain')) {
+      return {
+        title: 'Unauthorized Domain',
+        desc: `Firebase authentication does not recognize this browser domain yet (${window.location.hostname}). Please add this domain under Firebase Console -> Authentication -> Authorized Domains and wait 2 minutes.`
+      };
+    }
+
+    if (errorString.includes('auth/email-already-in-use') || mainError.includes('auth/email-already-in-use')) {
+      return {
+        title: 'Account Already Exists',
+        desc: 'This email is already associated with an account. Try signing in directly.'
+      };
+    }
+
+    if (errorString.includes('auth/weak-password') || mainError.includes('auth/weak-password')) {
+      return {
+        title: 'Weak Password',
+        desc: 'Your password should be at least 6 characters long.'
+      };
+    }
+
+    if (
+      errorString.includes('auth/invalid-credential') || mainError.includes('auth/invalid-credential') ||
+      errorString.includes('auth/user-not-found') || mainError.includes('auth/user-not-found') ||
+      errorString.includes('auth/wrong-password') || mainError.includes('auth/wrong-password')
+    ) {
+      return {
+        title: 'Invalid Credentials',
+        desc: 'The email address or password provided is incorrect. Please double check and try again.'
+      };
+    }
+
+    return {
+      title: 'Authentication Update',
+      desc: mainError.replace('Firebase: ', '')
+    };
+  };
+
+  const friendlyError = getFriendlyErrorMessage(error);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -64,7 +147,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 30 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-white z-[210] overflow-hidden rounded-[2.5rem] shadow-2xl"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-md bg-white z-[210] overflow-y-auto max-h-[90vh] rounded-[2.5rem] shadow-2xl"
           >
             <div className="relative p-8 sm:p-10">
               <button 
@@ -86,10 +169,31 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </p>
               </div>
 
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 text-red-500 text-[0.7rem] rounded-xl border border-red-100 flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                  {error}
+              {friendlyError && (
+                <div className="mb-6 p-4 bg-red-50/80 text-red-800 rounded-2xl border border-red-100 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-[0.75rem] uppercase tracking-wider text-red-700">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                    {friendlyError.title}
+                  </div>
+                  <p className="text-[0.7rem] sm:text-[0.75rem] text-red-700/90 leading-relaxed">
+                    {friendlyError.desc}
+                  </p>
+                  {friendlyError.points && (
+                    <ul className="mt-2 text-[0.65rem] text-red-800 space-y-1.5 list-disc pl-4 font-medium leading-relaxed">
+                      {friendlyError.points.map((pt, idx) => (
+                        <li key={idx}>{pt}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {friendlyError.isNetwork && (
+                    <button
+                      type="button"
+                      onClick={handleGuestSignIn}
+                      className="mt-3 w-full py-2.5 bg-red-800 text-white hover:bg-black rounded-xl text-center text-[0.65rem] tracking-[0.2em] font-bold uppercase transition-all shadow-md"
+                    >
+                      Login as Guest (Bypass Error)
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -155,13 +259,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <div className="h-[1px] flex-1 bg-cream" />
               </div>
 
-              <button
-                onClick={handleGoogleSignIn}
-                className="w-full py-4 bg-white border border-cream rounded-2xl font-bold text-[0.65rem] tracking-[0.2em] uppercase flex items-center justify-center gap-4 hover:bg-cream transition-all"
-              >
-                <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" loading="lazy" decoding="async" />
-                Google Account
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={handleGoogleSignIn}
+                  className="w-full py-4 bg-white border border-cream rounded-2xl font-bold text-[0.65rem] tracking-[0.2em] uppercase flex items-center justify-center gap-4 hover:bg-cream transition-all"
+                >
+                  <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" loading="lazy" decoding="async" />
+                  Google Account
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGuestSignIn}
+                  className="w-full py-4 bg-cream/30 hover:bg-gold hover:text-white text-gold border border-gold/10 rounded-2xl font-bold text-[0.65rem] tracking-[0.2em] uppercase flex items-center justify-center gap-3 transition-all shadow-sm"
+                >
+                  <span>🌸</span> Continue as Guest (Bypass Login)
+                </button>
+              </div>
 
               <div className="mt-10 text-center">
                 <button

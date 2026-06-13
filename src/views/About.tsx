@@ -44,9 +44,9 @@ export function About({ setView, siteConfig }: { setView: (view: View) => void, 
                   decoding="async"
                 />
               </motion.div>
-              <div className="absolute -bottom-8 -left-8 w-40 h-40 glass p-8 flex flex-col items-center justify-center text-center">
-                 <span className="font-serif text-3xl italic text-gold">2025</span>
-                 <span className="text-micro text-dark">Founded</span>
+              <div className="absolute -bottom-4 -left-4 sm:-bottom-8 sm:-left-8 w-28 h-28 sm:w-40 sm:h-40 glass p-4 sm:p-8 flex flex-col items-center justify-center text-center shadow-lg">
+                 <span className="font-serif text-2xl sm:text-3xl italic text-gold">2025</span>
+                 <span className="text-[0.55rem] sm:text-micro text-dark tracking-[0.2em] sm:tracking-[0.4em]">Founded</span>
               </div>
             </div>
           </div>
@@ -83,7 +83,7 @@ export function About({ setView, siteConfig }: { setView: (view: View) => void, 
 
           <div className="relative aspect-[16/6] w-full overflow-hidden luxury-shadow">
              <img 
-               src="https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=1400&q=80" 
+               src={siteConfig.aboutBannerImage || "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=1400&q=80"} 
                alt="Aesthetic" 
                className="w-full h-full object-cover"
                referrerPolicy="no-referrer"

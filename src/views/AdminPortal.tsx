@@ -38,6 +38,8 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     aboutTitle: 'Where Softness meets Modern Grace.',
     aboutVision: 'The Pastel Story was born from a simple desire: to bring back the whisper of elegance in an era of loud trends. Shiwani founded this brand with the vision of creating a sanctuary of soft aesthetics.',
     aboutImage: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80',
+    narrativeImage: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=800&q=80',
+    aboutBannerImage: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=1400&q=80',
     contactWhatsApp: '+91 84449 29090',
     contactEmail: 'shiwaniag456@gmail.com',
     galleryImages: [
@@ -433,6 +435,16 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       if (configToSave.aboutImage?.startsWith('blob:')) {
         const file = pendingFiles[configToSave.aboutImage];
         if (file) configToSave.aboutImage = await handleFileUpload(file);
+      }
+
+      if (configToSave.narrativeImage?.startsWith('blob:')) {
+        const file = pendingFiles[configToSave.narrativeImage];
+        if (file) configToSave.narrativeImage = await handleFileUpload(file);
+      }
+
+      if (configToSave.aboutBannerImage?.startsWith('blob:')) {
+        const file = pendingFiles[configToSave.aboutBannerImage];
+        if (file) configToSave.aboutBannerImage = await handleFileUpload(file);
       }
 
       if (configToSave.galleryImages) {
@@ -1509,8 +1521,62 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Home Page Narrative Image (Overlayed with "Crafted with Love")</label>
+                    <div 
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.type.startsWith('image/')) {
+                          const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                          setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                          requestAnimationFrame(() => {
+                            setSiteConfig((prev: any) => ({ ...prev, narrativeImage: preview }));
+                          });
+                        }
+                      }}
+                      className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
+                    >
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                            setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                            requestAnimationFrame(() => {
+                              setSiteConfig((prev: any) => ({ ...prev, narrativeImage: preview }));
+                            });
+                          }
+                        }}
+                      />
+                      {pendingUploads > 0 ? (
+                        <div className="flex flex-col items-center">
+                          <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
+                          <p className="text-[0.65rem] text-mid uppercase tracking-widest font-black">PREPARING...</p>
+                        </div>
+                      ) : siteConfig.narrativeImage ? (
+                        <div className="flex flex-col items-center">
+                          <img 
+                            src={siteConfig.narrativeImage} 
+                            className="w-20 h-20 object-cover rounded-lg mb-2" 
+                            alt="" 
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
+                          />
+                          <p className="text-micro text-mid">Click to Change</p>
+                        </div>
+                      ) : (
+                        <p className="text-micro text-mid">Upload Narrative Image</p>
+                      )}
+                    </div>
+                  </div>
+
                   <button 
-                    onClick={() => handleSaveConfigSection(['siteName', 'marqueeText', 'quoteText', 'quoteAuthor'], 'Brand Identity Settings')}
+                    onClick={() => handleSaveConfigSection(['siteName', 'marqueeText', 'quoteText', 'quoteAuthor', 'narrativeImage'], 'Brand Identity Settings')}
                     className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                     disabled={pendingUploads > 0}
                   >
@@ -1956,10 +2022,64 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         )}
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">About Wide Banner Image ("Timeless Silhouettes")</label>
+                      <div 
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0];
+                          if (file && file.type.startsWith('image/')) {
+                            const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                            setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                            requestAnimationFrame(() => {
+                              setSiteConfig((prev: any) => ({ ...prev, aboutBannerImage: preview }));
+                            });
+                          }
+                        }}
+                        className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
+                      >
+                        <input 
+                          type="file" 
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                              setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                              requestAnimationFrame(() => {
+                                setSiteConfig((prev: any) => ({ ...prev, aboutBannerImage: preview }));
+                              });
+                            }
+                          }}
+                        />
+                        {pendingUploads > 0 ? (
+                          <div className="flex flex-col items-center">
+                            <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
+                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-black">PREPARING...</p>
+                          </div>
+                        ) : siteConfig.aboutBannerImage ? (
+                          <div className="flex flex-col items-center">
+                            <img 
+                              src={siteConfig.aboutBannerImage} 
+                              className="w-[120px] h-12 object-cover rounded-lg mb-2" 
+                              alt="" 
+                              loading="lazy"
+                              decoding="async"
+                              referrerPolicy="no-referrer"
+                            />
+                            <p className="text-micro text-mid">Click to Change</p>
+                          </div>
+                        ) : (
+                          <p className="text-micro text-mid">Upload Wide Banner Image</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <button 
-                    onClick={() => handleSaveConfigSection(['aboutTitle', 'aboutVision', 'aboutSecondary', 'aboutImage'], 'About Page')}
+                    onClick={() => handleSaveConfigSection(['aboutTitle', 'aboutVision', 'aboutSecondary', 'aboutImage', 'aboutBannerImage'], 'About Page')}
                     className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                     disabled={pendingUploads > 0}
                   >

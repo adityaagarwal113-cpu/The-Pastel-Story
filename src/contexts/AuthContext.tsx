@@ -19,6 +19,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        localStorage.removeItem('guest_user');
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         try {
           const userSnap = await getDoc(userDocRef);
@@ -54,7 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(firebaseUser);
       } else {
-        setUser(null);
+        const storedGuest = localStorage.getItem('guest_user');
+        if (storedGuest) {
+          try {
+            setUser(JSON.parse(storedGuest));
+          } catch (e) {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
       }
       setLoading(false);
     });
@@ -106,12 +117,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInAsGuest = async () => {
+    const guestUser = {
+      uid: 'guest_' + Math.random().toString(36).substring(2, 9),
+      email: 'guest@pastelstory.com',
+      displayName: 'Pastel Guest',
+      photoURL: null,
+      isAnonymous: true,
+    } as any;
+    localStorage.setItem('guest_user', JSON.stringify(guestUser));
+    setUser(guestUser);
+  };
+
   const logout = async () => {
+    localStorage.removeItem('guest_user');
     await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, logout }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, logout }}>
       {children}
     </AuthContext.Provider>
   );

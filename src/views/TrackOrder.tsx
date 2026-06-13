@@ -26,8 +26,28 @@ export function TrackOrder({ siteConfig }: { siteConfig: any }) {
     if (!orderInput) return;
     setStatus('loading');
     
+    const uppercaseId = orderInput.trim().toUpperCase();
+    
+    // Check locally first (excellent for guest accounts & offline-resilience)
     try {
-      const q = query(collection(db, 'orders'), where('orderId', '==', orderInput.trim().toUpperCase()));
+      const localOrdersStr = localStorage.getItem('local_orders');
+      if (localOrdersStr) {
+        const localOrders = JSON.parse(localOrdersStr);
+        if (Array.isArray(localOrders)) {
+          const found = localOrders.find((o: any) => o.orderId === uppercaseId);
+          if (found) {
+            setOrderData(found);
+            setStatus('found');
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Local cache read failed during tracking:', e);
+    }
+
+    try {
+      const q = query(collection(db, 'orders'), where('orderId', '==', uppercaseId));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {

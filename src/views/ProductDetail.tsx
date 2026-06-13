@@ -158,7 +158,7 @@ export function ProductDetail({ product, products, onOpenProduct, wishlist, site
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
           {/* Gallery UI - High Resolution Vertical Grid focus */}
-          <div className="lg:col-span-7 flex flex-col md:flex-row gap-6">
+          <div className="lg:col-span-7 flex flex-col-reverse md:flex-row gap-6">
             {(product.imgs.length > 1 || product.videoUrl) && (
               <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scroller-hidden shrink-0">
                 {product.imgs.map((img, i) => (

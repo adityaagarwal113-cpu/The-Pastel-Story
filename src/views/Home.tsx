@@ -102,7 +102,7 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
               <motion.div
                 animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
                 transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-10 -left-10 lg:-left-20 w-32 h-40 glass p-1 luxury-shadow z-20 hidden md:block"
+                className="absolute -bottom-6 -left-4 md:-bottom-10 md:-left-10 lg:-left-20 w-24 h-32 md:w-32 md:h-40 glass p-1 luxury-shadow z-20"
               >
                 <div className="h-full w-full overflow-hidden">
                    <img 
@@ -127,7 +127,7 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
             <div className="relative max-w-sm w-full">
               <div className="aspect-[3/4] overflow-hidden grayscale hover:grayscale-0 transition-all duration-700 luxury-shadow">
                 <img 
-                  src="https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=800&q=80" 
+                  src={siteConfig.narrativeImage || "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=800&q=80"} 
                   alt="Process" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -135,8 +135,8 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
                   decoding="async"
                 />
               </div>
-              <div className="absolute -top-12 -right-12 w-48 h-48 border border-gold/10 rounded-full flex items-center justify-center p-8 text-center bg-cream/30 backdrop-blur-sm">
-                <span className="text-micro text-dark leading-loose">Crafted with Love by Shiwani</span>
+              <div className="absolute -top-6 -right-6 md:-top-12 md:-right-12 w-32 h-32 md:w-48 md:h-48 border border-gold/10 rounded-full flex items-center justify-center p-4 md:p-8 text-center bg-cream/30 backdrop-blur-md z-10 shadow-sm">
+                <span className="text-[0.5rem] md:text-micro text-dark leading-loose tracking-[0.2em] md:tracking-[0.4em]">Crafted with Love by Shiwani</span>
               </div>
             </div>
           </div>

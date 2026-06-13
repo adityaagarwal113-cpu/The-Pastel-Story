@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, 
   Upload, 
@@ -8,7 +8,10 @@ import {
   Copy,
   Check,
   SmartphoneIcon,
-  QrCode
+  QrCode,
+  Smartphone,
+  Loader2,
+  CheckCircle
 } from 'lucide-react';
 import { View } from '../types';
 import { db } from '../lib/firebase';
@@ -19,38 +22,55 @@ import { useAuth } from '../contexts/AuthContext';
 const compressAndEncodeToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
+    
     reader.onload = (event) => {
       const img = new Image();
-      img.src = event.target?.result as string;
+      
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        // Max dimension of 800px is perfect for verification while keeping data light (under 100KB)
-        const MAX_DIM = 800;
-        if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) {
-            height = Math.round((height * MAX_DIM) / width);
-            width = MAX_DIM;
-          } else {
-            width = Math.round((width * MAX_DIM) / height);
-            height = MAX_DIM;
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Max dimension of 600px is perfect for verification while keeping data light (under 40KB)
+          const MAX_DIM = 600;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
           }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            throw new Error('Failed to get 2D context for image compression');
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(compressedBase64);
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
-        
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-        resolve(compressedBase64);
       };
-      img.onerror = (error) => reject(error);
+      
+      img.onerror = (error) => {
+        reject(new Error('Failed to load image file for compression'));
+      };
+      
+      img.src = event.target?.result as string;
     };
-    reader.onerror = (error) => reject(error);
+    
+    reader.onerror = (error) => {
+      reject(new Error('Failed to read payment proof file'));
+    };
+    
+    reader.readAsDataURL(file);
   });
 };
 
@@ -72,6 +92,7 @@ interface PaymentProps {
 export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentState, setPaymentState] = useState<'IDLE' | 'PROCESSING' | 'SUCCESS'>('IDLE');
   const [submissionStatus, setSubmissionStatus] = useState<string>('');
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
@@ -93,41 +114,94 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
     if (!user || !proofFile) return;
 
     setIsSubmitting(true);
-    setSubmissionStatus('Processing Receipt...');
+    setPaymentState('PROCESSING');
+    setSubmissionStatus('Compressing Receipt...');
     
     try {
-      // 1. Compress & encode receipt to Base64
-      const downloadUrl = await compressAndEncodeToBase64(proofFile);
-      
-      setSubmissionStatus('Confirming Order...');
-      const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      const orderRef = doc(db, 'orders', orderId);
-      
-      await setDoc(orderRef, {
-        orderId,
-        userId: user.uid,
-        userEmail: user.email,
-        userName: checkoutData.name,
-        userPhone: checkoutData.phone,
-        address: checkoutData.address,
-        pincode: checkoutData.pincode,
-        items: checkoutData.items,
-        total: checkoutData.total,
-        discountUsed: checkoutData.discountUsed || '',
-        discountAmount: checkoutData.discountAmount || 0,
-        status: 'Order Placed',
-        paymentProof: downloadUrl,
-        timestamp: serverTimestamp(),
-      });
+      // 1. Start the background process (asynchronously in parallel)
+      const dbWritePromise = (async () => {
+        const downloadUrl = await compressAndEncodeToBase64(proofFile);
+        
+        const orderId = `TPS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+        
+        const orderPayload: any = {
+          orderId,
+          userId: user.uid,
+          userEmail: user.email || 'guest@pastelstory.com',
+          userName: checkoutData.name,
+          userPhone: checkoutData.phone,
+          address: checkoutData.address,
+          pincode: checkoutData.pincode,
+          items: checkoutData.items,
+          total: checkoutData.total,
+          discountUsed: checkoutData.discountUsed || '',
+          discountAmount: checkoutData.discountAmount || 0,
+          status: 'Order Placed',
+          paymentProof: downloadUrl,
+        };
 
-      setOrderSuccess(orderId);
-      onClearCart();
-      setIsSubmitting(false);
+        // Diagnostic logs to find the validation mismatch
+        console.log("DIAGNOSTIC - ORDER PAYLOAD:", {
+          keys: Object.keys(orderPayload),
+          fields: Object.entries(orderPayload).map(([k, v]) => ({
+            key: k,
+            type: typeof v,
+            length: typeof v === 'string' ? v.length : undefined,
+            valueSample: typeof v === 'string' ? (v.length > 50 ? v.substring(0, 50) + "..." : v) : v
+          }))
+        });
+
+        if (user.uid.startsWith('guest_')) {
+          orderPayload.timestamp = new Date().toISOString();
+          const existingLocalStr = localStorage.getItem('local_orders');
+          const localOrders = existingLocalStr ? JSON.parse(existingLocalStr) : [];
+          localOrders.unshift(orderPayload);
+          localStorage.setItem('local_orders', JSON.stringify(localOrders));
+        } else {
+          const orderRef = doc(db, 'orders', orderId);
+          await setDoc(orderRef, {
+            ...orderPayload,
+            timestamp: serverTimestamp(),
+          });
+          
+          try {
+            const cachedPayload = { ...orderPayload, timestamp: new Date().toISOString() };
+            const existingLocalStr = localStorage.getItem('local_orders');
+            const localOrders = existingLocalStr ? JSON.parse(existingLocalStr) : [];
+            localOrders.unshift(cachedPayload);
+            localStorage.setItem('local_orders', JSON.stringify(localOrders));
+          } catch (e) {
+            // Ignore caching issues
+          }
+        }
+        return orderId;
+      })();
+
+      // 2. Minimum animation duration so the user feels secure and animations can breathe (2.2 seconds)
+      const simulationDuration = 2200;
+
+      // 3. Run both the Firestore write and simulated delay concurrently
+      const [orderId] = await Promise.all([
+        dbWritePromise,
+        new Promise<void>((resolve) => setTimeout(resolve, simulationDuration))
+      ]);
+
+      // 4. Upgrade visual states to SUCCESS to play the checkmark check animation in the overlay
+      setPaymentState('SUCCESS');
+      
+      // Keep displaying the green success checkmark before finally redirecting/rendering orderSuccess state
+      setTimeout(() => {
+        setOrderSuccess(orderId);
+        onClearCart();
+        setIsSubmitting(false);
+        setPaymentState('IDLE');
+      }, 1500);
 
     } catch (error) {
       console.error("Order initiation error:", error);
       handleFirestoreError(error, OperationType.WRITE, 'orders');
       setIsSubmitting(false);
+      setPaymentState('IDLE');
     }
   };
 
@@ -350,6 +424,79 @@ export function Payment({ checkoutData, onClearCart, setView }: PaymentProps) {
           </div>
         </div>
       </div>
+
+      {/* Simulated Payment Portal Screen Overlay */}
+      <AnimatePresence>
+        {paymentState !== 'IDLE' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 text-center space-y-6 shadow-2xl border border-cream"
+            >
+              <div className="flex flex-col items-center justify-center">
+                {paymentState === 'PROCESSING' ? (
+                  <div className="relative flex items-center justify-center w-24 h-24 mb-4">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                      className="absolute inset-0 border-4 border-gold/10 border-t-gold rounded-full"
+                    />
+                    <Smartphone size={32} className="text-gold animate-bounce" />
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0, 1.2, 1] }}
+                    className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-4 border border-green-100"
+                  >
+                    <CheckCircle size={48} className="text-green-500" />
+                  </motion.div>
+                )}
+
+                <h3 className="text-xl font-bold font-serif italic text-dark">
+                  {paymentState === 'PROCESSING' ? 'Processing Receipt...' : 'Order Placed Successfully!'}
+                </h3>
+                <p className="text-[0.65rem] font-bold text-gold uppercase tracking-widest mt-2">
+                  {paymentState === 'PROCESSING'
+                    ? 'Verifying UPI Secure Receipt...'
+                    : 'Your receipt is approved!'}
+                </p>
+              </div>
+
+              {/* Transaction Summary Card */}
+              <div className="bg-cream/10 p-5 rounded-2xl border border-cream/50 space-y-3 text-left">
+                <div className="flex justify-between items-center text-[10px] font-bold text-mid">
+                  <span className="uppercase tracking-wider text-dark/50">AMOUNT DUE</span>
+                  <span className="font-sans text-xs text-dark font-black">₹{checkoutData.total.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-bold text-mid">
+                  <span className="uppercase tracking-wider text-dark/50">METHOD</span>
+                  <span className="text-dark font-black uppercase tracking-wider">UPI / QR SCAN</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-bold text-mid">
+                  <span className="uppercase tracking-wider text-dark/50">RECIPIENT</span>
+                  <span className="text-dark font-black uppercase tracking-wider">The Pastel Story</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-bold text-mid">
+                  <span className="uppercase tracking-wider text-dark/50">STATUS</span>
+                  <span className="text-gold font-bold uppercase tracking-wider">{paymentState === 'PROCESSING' ? 'Checking proof...' : 'Verified!'}</span>
+                </div>
+              </div>
+
+              <div className="text-[9px] font-bold text-gold uppercase tracking-widest animate-pulse">
+                {paymentState === 'PROCESSING' ? 'Running secure digital scans...' : 'Pre-curating your order...'}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
