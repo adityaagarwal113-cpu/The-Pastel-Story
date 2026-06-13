@@ -56,7 +56,8 @@ service cloud.firestore {
     // --- Products ---
     match /products/{productId} {
       allow get, list: if true;
-      allow write: if isAdmin() && isValidProduct(incoming());
+      allow create, update: if isAdmin() && isValidProduct(incoming());
+      allow delete: if isAdmin();
 
       function isValidProduct(data) {
         return data.keys().hasAll(['id', 'name', 'price', 'category', 'imgs']) &&
@@ -110,7 +111,8 @@ service cloud.firestore {
     // --- Site Config ---
     match /site_config/{configId} {
       allow get, list: if true;
-      allow write: if isAdmin() && isValidConfig(incoming());
+      allow create, update: if isAdmin() && isValidConfig(incoming());
+      allow delete: if isAdmin();
 
       function isValidConfig(data) {
         return (!('heroTitle' in data) || (data.heroTitle is string && data.heroTitle.size() <= 200)) &&
