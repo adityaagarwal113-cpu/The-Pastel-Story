@@ -13,7 +13,11 @@ export function Footer({ setView, siteConfig }: FooterProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-24 border-b border-white/5">
           <div className="lg:col-span-4 space-y-10">
             <h2 className="font-serif text-4xl tracking-tight italic">
-              The Pastel <span className="text-gold not-italic">Story</span>
+              {siteConfig?.siteName ? (
+                <span>{siteConfig.siteName}</span>
+              ) : (
+                <>The Pastel <span className="text-gold not-italic">Story</span></>
+              )}
             </h2>
             <p className="text-sm text-white/40 leading-relaxed font-light max-w-sm">
               We curate chapters of softness for the modern woman. Each silhouette is a handpicked narrative of elegance and comfort, crafted for moments that matter.
@@ -75,7 +79,7 @@ export function Footer({ setView, siteConfig }: FooterProps) {
 
         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-micro text-white/10 uppercase tracking-[0.2em]">
-            © 2025 The Pastel Story by Shiwani. All rights preserved.
+            © 2025 {siteConfig?.siteName || 'The Pastel Story'} by Shiwani. All rights preserved.
           </p>
           <div className="flex gap-8 text-micro text-white/10 uppercase tracking-[0.2em]">
             <span>Fair Trade</span>

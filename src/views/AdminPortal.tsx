@@ -108,7 +108,12 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
 
     // Real-time config
     const unsubConfig = onSnapshot(doc(db, 'site_config', 'main'), (doc) => {
-      if (doc.exists()) setSiteConfig(doc.data());
+      if (doc.exists()) {
+        setSiteConfig((prev: any) => ({
+          ...prev,
+          ...doc.data()
+        }));
+      }
       setIsLoading(false);
     }, (error) => {
       try {
@@ -169,6 +174,72 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
       await updateDoc(doc(db, 'orders', orderId), updates);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+    }
+  };
+
+  const handleSaveConfigSection = async (keys: string[], sectionName: string) => {
+    try {
+      setPendingUploads(prev => prev + 1);
+      const configToSave = { ...siteConfig };
+      const dataToSave: any = {};
+
+      for (const key of keys) {
+        let val = configToSave[key];
+        if (val === undefined) continue;
+
+        // Handle file uploads if any
+        if (typeof val === 'string' && val.startsWith('blob:')) {
+          const file = pendingFiles[val];
+          if (file) {
+            val = await handleFileUpload(file);
+          }
+        } else if (key === 'galleryImages' && Array.isArray(val)) {
+          const uploadedGallery = [];
+          for (const img of val) {
+            if (img.startsWith('blob:')) {
+              const file = pendingFiles[img];
+              if (file) {
+                const url = await handleFileUpload(file);
+                uploadedGallery.push(url);
+              }
+            } else {
+              uploadedGallery.push(img);
+            }
+          }
+          val = uploadedGallery;
+        }
+        dataToSave[key] = val;
+      }
+
+      await setDoc(doc(db, 'site_config', 'main'), dataToSave, { merge: true });
+
+      // Clean up uploaded pending files
+      setPendingFiles(prev => {
+        const next = { ...prev };
+        for (const key of keys) {
+          const val = siteConfig[key];
+          if (typeof val === 'string' && val.startsWith('blob:')) {
+            delete next[val];
+          } else if (key === 'galleryImages' && Array.isArray(val)) {
+            val.forEach(img => {
+              if (img.startsWith('blob:')) delete next[img];
+            });
+          }
+        }
+        return next;
+      });
+
+      // Local update
+      setSiteConfig((prev: any) => ({
+        ...prev,
+        ...dataToSave
+      }));
+
+      alert(`${sectionName} saved successfully!`);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `site_config/main/${sectionName}`);
+    } finally {
+      setPendingUploads(prev => Math.max(0, prev - 1));
     }
   };
 
@@ -848,8 +919,15 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       </div>
                     </div>
                   </div>
+
+                  <button 
+                    onClick={() => handleSaveConfigSection(['heroTitle', 'heroSubtitle', 'heroButtonText', 'heroImage'], 'Hero Section')}
+                    className="w-full py-4 mt-4 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    disabled={pendingUploads > 0}
+                  >
+                    <Save className="w-4 h-4" /> Save Hero Settings
+                  </button>
                 </div>
-              </div>
 
               <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
                 <div className="flex items-center gap-4 mb-4">
@@ -857,6 +935,17 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                   <h3 className="text-2xl font-serif italic text-dark">Content Config</h3>
                 </div>
                 <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Site / Store Name</label>
+                    <input 
+                      type="text" 
+                      value={siteConfig.siteName || 'The Pastel Story'}
+                      onChange={(e) => setSiteConfig({...siteConfig, siteName: e.target.value})}
+                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all font-serif italic text-lg"
+                      placeholder="e.g. The Pastel Story"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Marquee Bar Text</label>
                     <textarea 
@@ -990,12 +1079,22 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     />
                   </div>
 
-                  <div className="h-px w-full bg-gold/10 my-8" />
-                  
-                  <div className="flex items-center gap-4 mb-4">
-                    <Layout className="w-8 h-8 text-gold" />
-                    <h3 className="text-2xl font-serif italic text-dark">About Page Config</h3>
-                  </div>
+                  <button 
+                    onClick={() => handleSaveConfigSection(['siteName', 'marqueeText', 'galleryImages', 'quoteText', 'quoteAuthor'], 'Identity & General Content')}
+                    className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    disabled={pendingUploads > 0}
+                  >
+                    <Save className="w-4 h-4" /> Save Brand & Content Settings
+                  </button>
+                </div>
+              </div>
+
+              {/* CARD 3: ABOUT PAGE CONFIG */}
+              <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <Layers className="w-8 h-8 text-gold" />
+                  <h3 className="text-2xl font-serif italic text-dark">About Page Config</h3>
+                </div>
 
                   <div className="space-y-6">
                     <div className="space-y-2">
@@ -1078,12 +1177,22 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                   </div>
 
-                  <div className="h-px w-full bg-gold/10 my-8" />
+                  <button 
+                    onClick={() => handleSaveConfigSection(['aboutTitle', 'aboutVision', 'aboutSecondary', 'aboutImage'], 'About Page')}
+                    className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    disabled={pendingUploads > 0}
+                  >
+                    <Save className="w-4 h-4" /> Save About Settings
+                  </button>
+                </div>
+              </div>
 
-                  <div className="flex items-center gap-4 mb-4">
-                    <User className="w-8 h-8 text-gold" />
-                    <h3 className="text-2xl font-serif italic text-dark">Contact & Info</h3>
-                  </div>
+              {/* CARD 4: CONTACT & INFO */}
+              <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <User className="w-8 h-8 text-gold" />
+                  <h3 className="text-2xl font-serif italic text-dark">Contact & Info</h3>
+                </div>
 
                   <div className="space-y-6">
                     <div className="space-y-2">
@@ -1104,12 +1213,37 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Instagram URL</label>
+                      <input 
+                        type="text" 
+                        value={siteConfig.instagramUrl || ''}
+                        onChange={(e) => setSiteConfig({...siteConfig, instagramUrl: e.target.value})}
+                        className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm"
+                        placeholder="e.g. https://www.instagram.com/your_handle"
+                      />
+                    </div>
                   </div>
 
-                  <div className="h-px w-full bg-gold/10 my-8" />
+                  <button 
+                    onClick={() => handleSaveConfigSection(['contactWhatsApp', 'contactEmail', 'instagramUrl'], 'Contact & Support Info')}
+                    className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    disabled={pendingUploads > 0}
+                  >
+                    <Save className="w-4 h-4" /> Save Contact Settings
+                  </button>
+                </div>
 
+              {/* CARD 5: CATEGORIES CONFIG */}
+              <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8 lg:col-span-2">
+                <div className="flex items-center gap-4 mb-4">
+                  <Package className="w-8 h-8 text-gold" />
+                  <h3 className="text-2xl font-serif italic text-dark">Manage Categories</h3>
+                </div>
+
+                <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Manage Categories</label>
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Edit Categories</label>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {(siteConfig.categories || ['kurta', 'coord', 'dress', 'suit', 'sharara']).map((cat: string, idx: number) => (
                         <div key={idx} className="flex items-center gap-2 bg-cream px-3 py-2 rounded-lg group">
@@ -1169,30 +1303,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     </div>
                   </div>
                   
-                  <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={() => {
-                          if (pendingUploads > 0) return;
-                          handleSaveConfig();
-                      }}
-                      className="w-full py-5 bg-dark text-white rounded-2xl font-bold text-[0.8rem] tracking-[0.2em] uppercase shadow-2xl shadow-dark/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                      disabled={pendingUploads > 0}
-                    >
-                      {pendingUploads > 0 ? 'PLEASE WAIT - UPLOADING...' : 'FINISH & SAVE'}
-                    </button>
-                    {pendingUploads > 0 && (
-                      <button 
-                        onClick={() => {
-                          if (window.confirm('Resetting the upload queue will stop tracking current progress. Continue?')) {
-                            setPendingUploads(0);
-                          }
-                        }}
-                        className="text-[0.55rem] text-mid uppercase tracking-[0.2em] font-black underline hover:text-dark text-center"
-                      >
-                        Taking too long? Reset Uploads
-                      </button>
-                    )}
-                  </div>
+                  <button 
+                    onClick={() => handleSaveConfigSection(['categories'], 'Store Categories')}
+                    className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    disabled={pendingUploads > 0}
+                  >
+                    <Save className="w-4 h-4" /> Save Categories Settings
+                  </button>
                 </div>
               </div>
             </div>

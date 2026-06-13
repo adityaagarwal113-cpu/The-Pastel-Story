@@ -93,7 +93,11 @@ export function Navigation({
             onClick={() => handleNav('home')}
             className="font-serif text-2xl tracking-[0.1em] text-dark group transition-all"
           >
-            THE PASTEL <span className="text-gold italic font-light group-hover:opacity-70 transition-opacity">STORY</span>
+            {siteConfig?.siteName ? (
+              <span className="uppercase">{siteConfig.siteName}</span>
+            ) : (
+              <>THE PASTEL <span className="text-gold italic font-light group-hover:opacity-70 transition-opacity">STORY</span></>
+            )}
           </button>
         </div>
 
@@ -221,7 +225,7 @@ export function Navigation({
                   onClick={() => handleNav('home')}
                   className="font-serif italic text-xl text-dark"
                 >
-                  The Pastel Story
+                  {siteConfig?.siteName || 'The Pastel Story'}
                 </button>
 
                 <button onClick={() => setIsMobileMenuOpen(false)}>
@@ -366,7 +370,9 @@ export function Navigation({
 
                 {/* FOOTER */}
                 <div className="p-10 text-center border-t border-gold/5 bg-white/30">
-                  <p className="text-[0.7rem] text-dark font-bold tracking-[0.4em] uppercase mb-2">The Pastel Story</p>
+                  <p className="text-[0.7rem] text-dark font-bold tracking-[0.4em] uppercase mb-2">
+                    {siteConfig?.siteName || 'The Pastel Story'}
+                  </p>
                   <p className="text-[0.6rem] text-mid italic opacity-70">Boutique Collective • curated with love by shiwani</p>
                   <div className="flex justify-center gap-5 mt-8">
                      <div className="w-1.5 h-1.5 rounded-full bg-gold/40 animate-pulse"></div>

@@ -147,12 +147,27 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
               Softness as a <span className="text-gold-d">Superpower.</span>
             </h2>
             <div className="h-px w-24 bg-gold/30" />
-            <p className="text-mid lg:text-lg leading-relaxed max-w-lg">
-              We believe that true elegance doesn't shout. It speaks in the whisper of high-quality fabrics, the grace of a perfect stitch, and the timeless beauty of a pastel palette.
-            </p>
-            <p className="text-mid text-sm leading-relaxed max-w-lg italic opacity-70">
-              Each garment in our collection is an invitation to slow down, breathe, and embrace your most feminine self.
-            </p>
+            {siteConfig?.quoteText ? (
+              <div className="space-y-4">
+                <p className="font-serif italic text-xl sm:text-2xl text-gold-d leading-relaxed max-w-lg">
+                  {siteConfig.quoteText}
+                </p>
+                {siteConfig.quoteAuthor && (
+                  <p className="text-micro text-mid font-sans tracking-[0.2em] uppercase">
+                    — {siteConfig.quoteAuthor}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="text-mid lg:text-lg leading-relaxed max-w-lg">
+                  We believe that true elegance doesn't shout. It speaks in the whisper of high-quality fabrics, the grace of a perfect stitch, and the timeless beauty of a pastel palette.
+                </p>
+                <p className="text-mid text-sm leading-relaxed max-w-lg italic opacity-70">
+                  Each garment in our collection is an invitation to slow down, breathe, and embrace your most feminine self.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -161,11 +176,17 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
       <div className="bg-dark py-6 overflow-hidden">
         <div className="flex whitespace-nowrap animate-marquee">
           {[1,2,3].map((i) => (
-            <div key={i} className="flex items-center gap-16 px-8 text-cream text-[0.6rem] font-bold uppercase tracking-[0.5em] opacity-60 italic">
-              <span>✦ New Collection SS25 Now Live</span>
-              <span>✦ Minimalist Luxury</span>
-              <span>✦ Boutique Craftsmanship</span>
-              <span>✦ The Pastel Story</span>
+            <div key={i} className="flex items-center gap-16 px-8 text-cream text-[0.6rem] font-bold uppercase tracking-[0.5em] opacity-80 italic">
+              {siteConfig?.marqueeText ? (
+                <span>{siteConfig.marqueeText}</span>
+              ) : (
+                <>
+                  <span>✦ New Collection SS25 Now Live</span>
+                  <span>✦ Minimalist Luxury</span>
+                  <span>✦ Boutique Craftsmanship</span>
+                  <span>✦ {siteConfig?.siteName || 'The Pastel Story'}</span>
+                </>
+              )}
             </div>
           ))}
         </div>
