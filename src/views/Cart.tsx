@@ -188,7 +188,7 @@ export function Cart({
                     onClick={() => onEditItem(item)}
                     className="aspect-[3/4] overflow-hidden bg-[#eeebe7] cursor-pointer rounded-lg border border-gold/5 shadow-sm"
                   >
-                    <img src={item.img} className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105" alt={item.name} loading="lazy" decoding="async" />
+                    <img src={item.img} className="w-full h-full object-cover object-top transition-all duration-500 hover:scale-105" alt={item.name} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                   </div>
                   
                   <div className="flex flex-col justify-between">

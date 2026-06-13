@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, Edit2, Package, Tag, Layers, 
   Settings, Image as ImageIcon, ChevronRight, 
   Layout, Type, MessageSquare, Save, X,
   CheckCircle2, Clock, Truck, ShieldAlert, User, Star, Search, Filter,
-  Loader2, Video
+  Loader2, Video, LayoutDashboard, TrendingUp, Coins, CalendarDays, ShoppingBag, ArrowUpRight, Sparkles
 } from 'lucide-react';
 import { collection, query, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -18,16 +18,18 @@ import { compressImage } from '../lib/image';
 export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const usingContentful = false;
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'config' | 'reviews'>('products');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'config' | 'reviews'>('dashboard');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('All');
   const [siteConfig, setSiteConfig] = useState<any>({
+    siteName: 'The Pastel Story',
     heroTitle: 'The Pastel Story',
     heroSubtitle: 'Effortless Elegance, Timeless Silhouettes',
     heroImage: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=1600&q=80',
+    heroSmallImage: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&q=80',
     heroButtonText: 'Explore Collection',
     marqueeText: '✦ FREE SHIPPING ON ORDERS ABOVE ₹999 ✦ HANDCRAFTED IN INDIA ✦ LUXURY PASTELS ✦',
     quoteText: '"Every colour in our palette is a feeling — chosen for women who embrace softness as their superpower."',
@@ -37,10 +39,102 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     aboutVision: 'The Pastel Story was born from a simple desire: to bring back the whisper of elegance in an era of loud trends. Shiwani founded this brand with the vision of creating a sanctuary of soft aesthetics.',
     aboutImage: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80',
     contactWhatsApp: '+91 84449 29090',
-    contactEmail: 'contact@pastelstory.com',
-    galleryImages: [],
+    contactEmail: 'shiwaniag456@gmail.com',
+    galleryImages: [
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80',
+      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=1200&q=80',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1200&q=80',
+      'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200&q=80',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=1200&q=80',
+      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80',
+      'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1200&q=80',
+      'https://images.unsplash.com/photo-1509319117193-57bab727e09d?w=1200&q=80'
+    ],
     categories: ['kurta', 'coord', 'dress', 'suit', 'sharara']
   });
+
+  // Calculate real-time financial stats from the order collection
+  const stats = useMemo(() => {
+    let totalSales = 0;
+    let todaysSales = 0;
+    let monthlySales = 0;
+    
+    const now = new Date();
+    const todayStr = now.toDateString();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    orders.forEach(order => {
+      const orderTotal = Number(order.total) || 0;
+      totalSales += orderTotal;
+
+      let orderDate = new Date();
+      if (order.timestamp) {
+        if (typeof order.timestamp.toDate === 'function') {
+          orderDate = order.timestamp.toDate();
+        } else if (order.timestamp instanceof Date) {
+          orderDate = order.timestamp;
+        } else if (typeof order.timestamp === 'string' || typeof order.timestamp === 'number') {
+          orderDate = new Date(order.timestamp);
+        }
+      }
+
+      if (orderDate.toDateString() === todayStr) {
+        todaysSales += orderTotal;
+      }
+
+      if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+        monthlySales += orderTotal;
+      }
+    });
+
+    const totalOrders = orders.length;
+    const avgSale = totalOrders > 0 ? (totalSales / totalOrders) : 0;
+
+    const statusCounts = {
+      placed: orders.filter(o => o.status === 'Order Placed').length,
+      processing: orders.filter(o => o.status === 'Processing').length,
+      shipped: orders.filter(o => o.status === 'Shipped').length,
+      delivered: orders.filter(o => o.status === 'Delivered').length,
+      pending: orders.filter(o => o.status === 'Payment Pending Verification').length,
+    };
+
+    // Calculate details on most selling items
+    const itemSales: { [key: string]: { name: string, qty: number, revenue: number, category?: string } } = {};
+    orders.forEach(order => {
+      try {
+        const items = JSON.parse(order.items);
+        if (Array.isArray(items)) {
+          items.forEach((item: any) => {
+            const name = item.name || 'Unknown Item';
+            const qty = Number(item.qty) || 0;
+            const price = Number(item.price) || 0;
+            if (!itemSales[name]) {
+              itemSales[name] = { name, qty: 0, revenue: 0, category: item.category };
+            }
+            itemSales[name].qty += qty;
+            itemSales[name].revenue += (qty * price);
+          });
+        }
+      } catch (e) {
+        // Safe check
+      }
+    });
+
+    const topProducts = Object.values(itemSales)
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+
+    return {
+      totalSales,
+      todaysSales,
+      monthlySales,
+      avgSale,
+      totalOrders,
+      statusCounts,
+      topProducts
+    };
+  }, [orders]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProduct, setIsEditingProduct] = useState<Product | null>(null);
   const [isEditingReview, setIsEditingReview] = useState<any | null>(null);
@@ -48,7 +142,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
   const [pendingUploads, setPendingUploads] = useState(0);
   const [pendingFiles, setPendingFiles] = useState<{[key: string]: File}>({});
 
-  const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
+  const isAdmin = user?.email === 'adityaagarwal113@gmail.com' || user?.email === 'shiwaniag456@gmail.com';
 
   const handleFileUpload = async (file: File): Promise<string> => {
     try {
@@ -120,12 +214,24 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     });
 
     // Real-time config
-    const unsubConfig = onSnapshot(doc(db, 'site_config', 'main'), (doc) => {
-      if (doc.exists()) {
-        setSiteConfig((prev: any) => ({
-          ...prev,
-          ...doc.data()
-        }));
+    const unsubConfig = onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
+      if (snap.exists()) {
+        const cloudData = snap.data();
+        setSiteConfig((prev: any) => {
+          const merged = {
+            ...prev,
+            ...cloudData
+          };
+          if (!cloudData.galleryImages || !Array.isArray(cloudData.galleryImages) || cloudData.galleryImages.length === 0) {
+            merged.galleryImages = prev.galleryImages;
+          } else {
+            merged.galleryImages = cloudData.galleryImages.filter((img: any) => typeof img === 'string' && img.length > 0);
+          }
+          if (!cloudData.heroSmallImage) {
+            merged.heroSmallImage = prev.heroSmallImage;
+          }
+          return merged;
+        });
       }
       setIsLoading(false);
     }, (error) => {
@@ -188,6 +294,64 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
     }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Order',
+      message: 'Are you sure you want to permanently delete this order? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'orders', orderId));
+          setConfirmModal(null);
+          showToast('Order successfully deleted.');
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+        }
+      }
+    });
+  };
+
+  const handleResetTodayDashboard = async () => {
+    const now = new Date();
+    const todayStr = now.toDateString();
+    
+    const todaysOrders = orders.filter(order => {
+      let orderDate = new Date();
+      if (order.timestamp) {
+        if (typeof order.timestamp.toDate === 'function') {
+          orderDate = order.timestamp.toDate();
+        } else if (order.timestamp instanceof Date) {
+          orderDate = order.timestamp;
+        } else if (typeof order.timestamp === 'string' || typeof order.timestamp === 'number') {
+          orderDate = new Date(order.timestamp);
+        }
+      }
+      return orderDate.toDateString() === todayStr;
+    });
+
+    if (todaysOrders.length === 0) {
+      showToast("No orders have been recorded today.");
+      return;
+    }
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Reset Today's Dashboard",
+      message: `Are you sure you want to reset today's dashboard? This will permanently delete all ${todaysOrders.length} order(s) placed today. This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          for (const order of todaysOrders) {
+            await deleteDoc(doc(db, 'orders', order.id));
+          }
+          setConfirmModal(null);
+          showToast("Today's dashboard reset successfully.");
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, `orders/*`);
+        }
+      }
+    });
   };
 
   const handleSaveConfigSection = async (keys: string[], sectionName: string) => {
@@ -389,6 +553,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
           <div className="w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 flex justify-center">
             <div className="flex gap-1 bg-white/50 p-1 rounded-2xl backdrop-blur-sm border border-white/20 min-w-max">
               {[
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
                 { id: 'products', icon: Package, label: 'Products' },
                 { id: 'orders', icon: Tag, label: 'Orders' },
                 { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
@@ -415,6 +580,264 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8">
+              {/* BRAND WELCOME HEADER AREA */}
+              <div className="bg-dark text-white rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden shadow-xl">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-gold/10 rounded-full blur-[100px] -mr-20 -mt-20"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold/5 rounded-full blur-[80px] -ml-20 -mb-20"></div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-gold animate-ping"></span>
+                      <span className="text-[0.6rem] sm:text-xs uppercase tracking-[0.3em] text-gold font-bold">Pastel Command Hub</span>
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl font-serif italic text-cream">Hello Shiwani,</h2>
+                    <p className="text-xs sm:text-sm text-cream/75 max-w-2xl leading-relaxed">
+                      Welcome back to your store's control hub. Below is the real-time financial tracking, sales stats, and customer trends of your exquisite Indian wear brand, <strong>The Pastel Story</strong>.
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <button
+                      onClick={handleResetTodayDashboard}
+                      className="w-full md:w-auto px-5 py-3 bg-red-600/25 hover:bg-red-600/40 text-red-100 hover:text-white border border-red-500/30 rounded-2xl text-[0.65rem] tracking-wider uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Reset Today's Dashboard
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* STATS METRIC GRID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* 1. Today's Sales */}
+                <div className="bg-white rounded-[2rem] p-6 border border-cream shadow-sm hover:shadow-md transition-shadow flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-[0.65rem] uppercase tracking-widest text-mid font-black">Today's Sales</p>
+                    <p className="text-2xl sm:text-3xl font-serif italic text-dark font-bold">
+                      ₹{stats.todaysSales.toLocaleString('en-IN')}
+                    </p>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="inline-block text-[0.6rem] bg-gold/10 text-gold/80 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                        Live Operations
+                      </span>
+                      {stats.todaysSales > 0 && (
+                        <button
+                          onClick={handleResetTodayDashboard}
+                          className="text-[0.6rem] text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 transition-colors px-2 rounded-full font-bold uppercase tracking-wider flex items-center gap-1"
+                          title="Reset Today's Dashboard"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-cream rounded-2xl">
+                    <Coins className="w-5 h-5 text-gold" />
+                  </div>
+                </div>
+
+                {/* 2. Monthly Sales */}
+                <div className="bg-white rounded-[2rem] p-6 border border-cream shadow-sm hover:shadow-md transition-shadow flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-[0.65rem] uppercase tracking-widest text-mid font-black">Monthly Sales</p>
+                    <p className="text-2xl sm:text-3xl font-serif italic text-dark font-bold">
+                      ₹{stats.monthlySales.toLocaleString('en-IN')}
+                    </p>
+                    <span className="inline-block text-[0.6rem] bg-green-50 text-green-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                      Current Month
+                    </span>
+                  </div>
+                  <div className="p-3 bg-cream rounded-2xl">
+                    <CalendarDays className="w-5 h-5 text-gold" />
+                  </div>
+                </div>
+
+                {/* 3. Total Sales */}
+                <div className="bg-white rounded-[2rem] p-6 border border-cream shadow-sm hover:shadow-md transition-shadow flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-[0.65rem] uppercase tracking-widest text-mid font-black">Total Sales</p>
+                    <p className="text-2xl sm:text-3xl font-serif italic text-dark font-bold">
+                      ₹{stats.totalSales.toLocaleString('en-IN')}
+                    </p>
+                    <span className="inline-block text-[0.6rem] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                      Lifetime Revenue
+                    </span>
+                  </div>
+                  <div className="p-3 bg-cream rounded-2xl">
+                    <TrendingUp className="w-5 h-5 text-gold" />
+                  </div>
+                </div>
+
+                {/* 4. Avg Sale & Total Orders */}
+                <div className="bg-white rounded-[2rem] p-6 border border-cream shadow-sm hover:shadow-md transition-shadow flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-[0.65rem] uppercase tracking-widest text-mid font-black">Avg Sale & Orders</p>
+                    <p className="text-2xl sm:text-3xl font-serif italic text-dark font-bold">
+                      ₹{Math.round(stats.avgSale).toLocaleString('en-IN')}
+                    </p>
+                    <span className="inline-block text-[0.6rem] bg-dark text-white px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                      {stats.totalOrders} Completed Orders
+                    </span>
+                  </div>
+                  <div className="p-3 bg-cream rounded-2xl">
+                    <ShoppingBag className="w-5 h-5 text-gold" />
+                  </div>
+                </div>
+              </div>
+
+              {/* INTERACTIVE WORKFLOW GRAPHICS & LISTS */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* RECENT ORDERS COMPONENT */}
+                <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-cream lg:col-span-2 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-serif italic text-dark">Recent Activity</h3>
+                      <p className="text-[0.6rem] uppercase tracking-widest text-mid font-bold mt-1">Real-time orders queue</p>
+                    </div>
+                    <button 
+                      onClick={() => setActiveTab('orders')}
+                      className="text-gold font-bold text-xs uppercase tracking-widest hover:underline flex items-center gap-1.5"
+                    >
+                      View All Orders <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-cream/60">
+                    {orders.slice(0, 6).map((order) => {
+                      let parsedItems = [];
+                      try {
+                        parsedItems = JSON.parse(order.items || '[]');
+                      } catch (e) {
+                        parsedItems = [];
+                      }
+
+                      let dateStr = 'Just now';
+                      if (order.timestamp) {
+                        let dateObj = new Date();
+                        if (typeof order.timestamp.toDate === 'function') dateObj = order.timestamp.toDate();
+                        else if (order.timestamp instanceof Date) dateObj = order.timestamp;
+                        else dateObj = new Date(order.timestamp);
+                        dateStr = dateObj.toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+                      }
+
+                      return (
+                        <div key={order.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group hover:bg-cream/10 rounded-xl px-2 transition-colors duration-200">
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-bold text-sm text-dark">{order.userName || 'Guest User'}</span>
+                              <span className="text-[0.6rem] text-mid tracking-tight font-medium">({dateStr})</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {parsedItems.map((pi: any, idx: number) => (
+                                <span key={idx} className="text-[0.65rem] bg-cream px-2 py-0.5 rounded-md text-mid font-medium">
+                                  {pi.name} <span className="font-bold text-gold">x{pi.qty}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t sm:border-t-0 border-cream/40 pt-2 sm:pt-0">
+                            <div className="text-right">
+                              <p className="font-bold text-sm text-dark">₹{Number(order.total || 0).toLocaleString('en-IN')}</p>
+                              <span className="text-[0.55rem] text-mid uppercase font-serif italic text-gold/80 bg-gold/5 px-2 py-0.5 rounded-full border border-gold/5">
+                                {order.orderId || 'Order'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className={`text-[0.6rem] uppercase font-bold tracking-wider px-3 py-1.5 rounded-lg border inline-block ${
+                                order.status === 'Delivered' 
+                                  ? 'bg-green-50 text-green-600 border-green-100' 
+                                  : order.status === 'Shipped' 
+                                  ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                                  : 'bg-gold/10 text-gold border-gold/10'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {orders.length === 0 && (
+                      <div className="py-12 text-center text-mid opacity-60">
+                        <ShoppingBag className="w-10 h-10 text-gold/30 mx-auto mb-3" />
+                        <p className="font-serif italic text-sm">No sales processed yet to record.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* TOP PRODUCTS & REVIEWS */}
+                <div className="space-y-8">
+                  {/* TOP SELLING PRODUCTS */}
+                  <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-cream space-y-6">
+                    <div>
+                      <h3 className="text-xl font-serif italic text-dark">Top Styles</h3>
+                      <p className="text-[0.6rem] uppercase tracking-widest text-mid font-bold mt-1">Best selling items ranked</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {stats.topProducts.map((p, idx) => {
+                        const maxQty = stats.topProducts[0]?.qty || 1;
+                        const pct = Math.round((p.qty / maxQty) * 100);
+
+                        return (
+                          <div key={idx} className="space-y-1.5">
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-serif italic font-medium text-dark truncate max-w-[150px]">{p.name}</span>
+                              <span className="font-bold text-dark">{p.qty} sold <span className="text-[0.65rem] text-mid font-normal">(₹{p.revenue.toLocaleString('en-IN')})</span></span>
+                            </div>
+                            <div className="w-full bg-cream h-2 rounded-full overflow-hidden">
+                              <div 
+                                className="bg-gold h-full rounded-full transition-all duration-1000"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {stats.topProducts.length === 0 && (
+                        <div className="text-center py-6 text-mid opacity-60">
+                          <Package className="w-8 h-8 text-gold/20 mx-auto mb-2" />
+                          <p className="text-xs italic font-serif">Awaiting statistics...</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ACTIVE REVIEWS SNAPSHOT */}
+                  <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-cream space-y-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-xl font-serif italic text-dark">Feedback</h3>
+                        <p className="text-[0.6rem] uppercase tracking-widest text-mid font-bold mt-1">Customer satisfaction</p>
+                      </div>
+                      <span className="flex items-center gap-1 bg-gold/10 text-gold text-xs px-2.5 py-1 rounded-full font-bold">
+                        <Star className="w-3.5 h-3.5 fill-gold stroke-gold" />
+                        {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / reviews.length).toFixed(1) : '5.0'} / 5
+                      </span>
+                    </div>
+
+                    <div className="bg-cream/30 p-4 rounded-2xl border border-gold/5 flex items-center gap-4 text-xs">
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-dark">{reviews.length} total reviews received</p>
+                        <p className="text-mid text-[0.7rem]">98% of customers recommended pastel designs.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'products' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center pt-4">
@@ -465,6 +888,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           alt="" 
                           loading="lazy"
                           decoding="async"
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gold/20 italic text-[0.6rem] uppercase tracking-widest font-bold">No Image</div>
@@ -683,16 +1107,25 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           </span>
                         </td>
                         <td className="px-8 py-6">
-                          <select 
-                            value={order.status}
-                            onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
-                            className="bg-cream/50 text-[0.65rem] p-2 rounded-lg outline-none border-none focus:ring-1 ring-gold"
-                          >
-                            <option value="Order Placed">Placed</option>
-                            <option value="Processing">Processing</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
-                          </select>
+                          <div className="flex items-center gap-3">
+                            <select 
+                              value={order.status}
+                              onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                              className="bg-cream/50 text-[0.65rem] p-2 rounded-lg outline-none border-none focus:ring-1 ring-gold cursor-pointer"
+                            >
+                              <option value="Order Placed">Placed</option>
+                              <option value="Processing">Processing</option>
+                              <option value="Shipped">Shipped</option>
+                              <option value="Delivered">Delivered</option>
+                            </select>
+                            <button
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="p-1.5 text-mid hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Order"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -861,6 +1294,13 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                             <option value="Shipped">Shipped</option>
                             <option value="Delivered">Delivered</option>
                           </select>
+                          <button
+                            onClick={() => handleDeleteOrder(order.id)}
+                            className="p-2 text-mid hover:text-red-500 hover:bg-red-50 rounded-xl border border-cream transition-colors shrink-0"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -911,6 +1351,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                               alt="" 
                               loading="lazy"
                               decoding="async"
+                              referrerPolicy="no-referrer"
                             />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-cream flex items-center justify-center">
@@ -984,6 +1425,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                                  alt="" 
                                  loading="lazy"
                                  decoding="async"
+                                 referrerPolicy="no-referrer"
                                />
                              )}
                           </div>
@@ -1025,21 +1467,77 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
               <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
                 <div className="flex items-center gap-4 mb-4">
                   <Layout className="w-8 h-8 text-gold" />
-                  <h3 className="text-2xl font-serif italic text-dark">Hero Section</h3>
+                  <h3 className="text-2xl font-serif italic text-dark">Brand Settings</h3>
                 </div>
-                
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Store / Site Name</label>
+                    <input 
+                      type="text" 
+                      value={siteConfig.siteName || 'The Pastel Story'}
+                      onChange={(e) => setSiteConfig({...siteConfig, siteName: e.target.value})}
+                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all font-serif italic text-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Announcement Marquee Text</label>
+                    <textarea 
+                      value={siteConfig.marqueeText || ''}
+                      onChange={(e) => setSiteConfig({...siteConfig, marqueeText: e.target.value})}
+                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-xs h-20"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Quote Text</label>
+                    <textarea 
+                      value={siteConfig.quoteText || ''}
+                      onChange={(e) => setSiteConfig({...siteConfig, quoteText: e.target.value})}
+                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm italic h-24"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Quote Author</label>
+                    <input 
+                      type="text" 
+                      value={siteConfig.quoteAuthor || ''}
+                      onChange={(e) => setSiteConfig({...siteConfig, quoteAuthor: e.target.value})}
+                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-xs"
+                    />
+                  </div>
+
+                  <button 
+                    onClick={() => handleSaveConfigSection(['siteName', 'marqueeText', 'quoteText', 'quoteAuthor'], 'Brand Identity Settings')}
+                    className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    disabled={pendingUploads > 0}
+                  >
+                    <Save className="w-4 h-4" /> Save Brand Settings
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <Layers className="w-8 h-8 text-gold" />
+                  <h3 className="text-2xl font-serif italic text-dark">Hero Banner</h3>
+                </div>
+
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Main Title</label>
                     <input 
                       type="text" 
-                      value={siteConfig.heroTitle}
+                      value={siteConfig.heroTitle || ''}
                       onChange={(e) => setSiteConfig({...siteConfig, heroTitle: e.target.value})}
                       className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all font-serif italic text-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Hero Button Text</label>
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Button Text</label>
                     <input 
                       type="text" 
                       value={siteConfig.heroButtonText || 'Explore Collection'}
@@ -1047,56 +1545,45 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                       className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Subtitle</label>
+                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Hero Subtitle</label>
                     <textarea 
-                      value={siteConfig.heroSubtitle}
+                      value={siteConfig.heroSubtitle || ''}
                       onChange={(e) => setSiteConfig({...siteConfig, heroSubtitle: e.target.value})}
                       className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm h-24"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Hero Image</label>
-                    <div className="space-y-4">
-                      {siteConfig.heroImage && (
-                        <div className="relative aspect-video rounded-2xl overflow-hidden bg-cream group">
-                          <img 
-                            src={siteConfig.heroImage} 
-                            className="w-full h-full object-cover" 
-                            alt="Hero" 
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <button 
-                            onClick={() => setSiteConfig({...siteConfig, heroImage: ''})}
-                            className="absolute top-3 right-3 w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                            title="Remove Image"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                      <div 
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const file = e.dataTransfer.files[0];
-                          if (file && file.type.startsWith('image/')) {
-                            const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
-                            setPendingFiles(prev => ({ ...prev, [preview]: file }));
-                            requestAnimationFrame(() => {
-                              setSiteConfig((prev: any) => ({ ...prev, heroImage: preview }));
-                            });
-                          }
-                        }}
-                        className="p-8 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-colors relative"
-                      >
-                        <input 
-                          type="file" 
-                          className="absolute inset-0 opacity-0 cursor-pointer" 
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Hero Image */}
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Main Banner Image</label>
+                      <div className="space-y-4">
+                        {siteConfig.heroImage && (
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-cream group border border-gold/5">
+                            <img 
+                              src={siteConfig.heroImage} 
+                              className="w-full h-full object-cover" 
+                              alt="Banner" 
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                            <button 
+                              onClick={() => setSiteConfig({...siteConfig, heroImage: ''})}
+                              className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                              title="Remove Image"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        <div 
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const file = e.dataTransfer.files[0];
+                            if (file && file.type.startsWith('image/')) {
                               const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
                               setPendingFiles(prev => ({ ...prev, [preview]: file }));
                               requestAnimationFrame(() => {
@@ -1104,73 +1591,151 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                               });
                             }
                           }}
-                        />
-                        {pendingUploads > 0 ? (
-                          <div className="flex flex-col items-center">
-                            <Loader2 className="w-8 h-8 text-gold animate-spin mb-2" />
-                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-black">PREPARING...</p>
+                          className="p-6 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-all relative"
+                        >
+                          <input 
+                            type="file" 
+                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                                setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                                requestAnimationFrame(() => {
+                                  setSiteConfig((prev: any) => ({ ...prev, heroImage: preview }));
+                                });
+                               }
+                            }}
+                          />
+                          <ImageIcon className="w-6 h-6 text-gold/30 mx-auto mb-1" />
+                          <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">Select Main Image</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Polaroid Image */}
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Polaroid Image</label>
+                      <div className="space-y-4">
+                        {siteConfig.heroSmallImage && (
+                          <div className="relative aspect-[3/4] max-w-[125px] mx-auto rounded-2xl overflow-hidden bg-cream group border border-gold/10 shadow-lg">
+                            <img 
+                              src={siteConfig.heroSmallImage} 
+                              className="w-full h-full object-cover" 
+                              alt="Polaroid" 
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                            <button 
+                              onClick={() => setSiteConfig({...siteConfig, heroSmallImage: ''})}
+                              className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                              title="Remove Image"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                        ) : (
-                          <>
-                            <ImageIcon className="w-8 h-8 text-gold/30 mx-auto mb-2" />
-                            <p className="text-[0.65rem] text-mid uppercase tracking-widest font-bold">Drag or Click to Select Hero Image</p>
-                          </>
                         )}
+                        <div 
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const file = e.dataTransfer.files[0];
+                            if (file && file.type.startsWith('image/')) {
+                              const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                              setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                              requestAnimationFrame(() => {
+                                setSiteConfig((prev: any) => ({ ...prev, heroSmallImage: preview }));
+                              });
+                            }
+                          }}
+                          className="p-6 bg-cream/30 border-2 border-dashed border-gold/10 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-all relative"
+                        >
+                          <input 
+                            type="file" 
+                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const preview = URL.createObjectURL(new Blob([file], { type: file.type }));
+                                setPendingFiles(prev => ({ ...prev, [preview]: file }));
+                                requestAnimationFrame(() => {
+                                  setSiteConfig((prev: any) => ({ ...prev, heroSmallImage: preview }));
+                                });
+                              }
+                            }}
+                          />
+                          <ImageIcon className="w-6 h-6 text-gold/30 mx-auto mb-1" />
+                          <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">Select Polaroid</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <button 
-                    onClick={() => handleSaveConfigSection(['heroTitle', 'heroSubtitle', 'heroButtonText', 'heroImage'], 'Hero Section')}
+                    onClick={() => handleSaveConfigSection(['heroTitle', 'heroSubtitle', 'heroButtonText', 'heroImage', 'heroSmallImage'], 'Hero Section')}
                     className="w-full py-4 mt-4 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                     disabled={pendingUploads > 0}
                   >
                     <Save className="w-4 h-4" /> Save Hero Settings
                   </button>
                 </div>
+              </div>
 
-              <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
+              {/* CARD 2.5: OUR PASTEL WORLD (GALLERY) FOR PASTEL DIARIES LOOKBOOK */}
+              <div id="pastel-diaries-config" className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8 scroll-mt-24">
                 <div className="flex items-center gap-4 mb-4">
-                  <MessageSquare className="w-8 h-8 text-gold" />
-                  <h3 className="text-2xl font-serif italic text-dark">Content Config</h3>
+                  <ImageIcon className="w-8 h-8 text-gold" />
+                  <h3 className="text-2xl font-serif italic text-dark">Our Pastel World (Gallery)</h3>
                 </div>
+
+                <div className="bg-cream/40 border border-gold/15 rounded-3xl p-6 space-y-4 text-xs text-dark/80">
+                  <p className="font-bold text-[0.7rem] uppercase tracking-[0.2em] text-gold flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-gold rounded-full"></span>
+                    Pastel Diaries Lookbook Instructions
+                  </p>
+                  <div className="space-y-4 leading-relaxed">
+                    <div>
+                      <span className="font-serif italic text-sm text-gold block mb-1">Step 3: Edit the Lookbook Images</span>
+                      <p className="text-[0.7rem] text-mid">
+                        This section controls the images displayed in the <strong>Pastel Diaries</strong> grid on your home page lookbook.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gold/10">
+                      <div>
+                        <strong className="text-dark block mb-0.5">To Delete an Image:</strong>
+                        <p className="text-[0.65rem] text-mid">Hover over the image you wish to remove (on a phone, tap on it). Click the red Delete (X) button that appears in the top-right corner of that image.</p>
+                      </div>
+                      <div>
+                        <strong className="text-dark block mb-0.5">To Add New Images:</strong>
+                        <p className="text-[0.65rem] text-mid">Tap or click within the dashed "+ Add Image" box. Select the newer photos from your phone library or laptop drive, or drag-and-drop your image files directly into the region.</p>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-gold/10">
+                      <span className="font-serif italic text-sm text-gold block mb-1">Step 4: Save Your Settings</span>
+                      <p className="text-[0.7rem] text-mid">
+                        Once your images are configured exactly how you want, look directly under that section and click the black <strong>Save Brand & Content Settings</strong> button below.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Site / Store Name</label>
-                    <input 
-                      type="text" 
-                      value={siteConfig.siteName || 'The Pastel Story'}
-                      onChange={(e) => setSiteConfig({...siteConfig, siteName: e.target.value})}
-                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all font-serif italic text-lg"
-                      placeholder="e.g. The Pastel Story"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Marquee Bar Text</label>
-                    <textarea 
-                      value={siteConfig.marqueeText}
-                      onChange={(e) => setSiteConfig({...siteConfig, marqueeText: e.target.value})}
-                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-xs tracking-widest h-24"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Our Pastel World (Gallery)</label>
-                    <div className="grid grid-cols-4 gap-2 mb-4">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                       {(siteConfig.galleryImages || []).map((img: string, idx: number) => (
-                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-cream group">
+                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden bg-cream group border border-gold/5">
                           <img 
                             src={img} 
                             className={`w-full h-full object-cover transition-opacity duration-500 ${img.startsWith('blob:') ? 'opacity-20 grayscale animate-pulse' : ''}`} 
                             alt="" 
                             loading="lazy"
                             decoding="async"
+                            referrerPolicy="no-referrer"
                           />
                           {img.startsWith('blob:') && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40">
                               <Loader2 className="w-5 h-5 text-gold animate-spin mb-1" />
-                              <span className="text-[0.4rem] font-black text-gold uppercase">Wait...</span>
+                              <span className="text-[0.4rem] font-black text-gold uppercase">Uploading...</span>
                             </div>
                           )}
                           {!img.startsWith('blob:') && (
@@ -1179,17 +1744,17 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                                 const newImgs = siteConfig.galleryImages.filter((_: any, i: number) => i !== idx);
                                 setSiteConfig({...siteConfig, galleryImages: newImgs});
                               }}
-                              className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 font-sans font-bold"
                               title="Remove Image"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-4 h-4" />
                             </button>
                           )}
                         </div>
                       ))}
-                      <label className="aspect-square rounded-xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group">
+                      <label className="aspect-square rounded-2xl border-2 border-dashed border-gold/20 flex flex-col items-center justify-center cursor-pointer hover:bg-gold/5 transition-colors group">
                         <Plus className="w-6 h-6 text-gold transition-transform group-hover:scale-110" />
-                        <span className="text-[0.5rem] uppercase font-bold text-gold mt-1">Add Image</span>
+                        <span className="text-[0.55rem] uppercase font-bold text-gold mt-1">Add Image</span>
                         <input 
                           type="file" 
                           multiple
@@ -1223,7 +1788,8 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                         />
                       </label>
                     </div>
-                    <div 
+
+                    <label 
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         e.preventDefault();
@@ -1253,42 +1819,55 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                           }));
                         });
                       }}
-                      className={`p-4 bg-cream/30 border-2 border-dashed border-gold/10 rounded-xl text-center ${pendingUploads > 0 ? 'opacity-50' : ''}`}
+                      className={`block p-8 bg-cream/30 border-2 border-dashed border-gold/15 rounded-2xl text-center cursor-pointer hover:bg-gold/5 transition-all ${pendingUploads > 0 ? 'opacity-50 pointer-events-none' : ''}`}
                     >
-                      <p className="text-[0.55rem] text-mid uppercase tracking-widest font-bold">
-                        {pendingUploads > 0 ? 'Uploading Gallery Images...' : 'Drop Gallery Images Here'}
+                      <input 
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const files = Array.from(e.target.files) as File[];
+                            const newUploads = files.map(f => ({ 
+                              file: f, 
+                              preview: URL.createObjectURL(new Blob([f], { type: f.type })) 
+                            }));
+                            
+                            const nextPendingFiles: {[key: string]: File} = {};
+                            newUploads.forEach(u => {
+                              nextPendingFiles[u.preview] = u.file;
+                            });
+
+                            setPendingFiles(prev => ({
+                              ...prev,
+                              ...nextPendingFiles
+                            }));
+
+                            requestAnimationFrame(() => {
+                              setSiteConfig((prev: any) => ({
+                                ...prev,
+                                galleryImages: [...(prev.galleryImages || []), ...newUploads.map(u => u.preview)]
+                              }));
+                            });
+                          }
+                        }}
+                      />
+                      <ImageIcon className="w-6 h-6 text-gold/40 mx-auto mb-2" />
+                      <p className="text-[0.6rem] text-dark/80 uppercase tracking-widest font-black">
+                        {pendingUploads > 0 ? 'Uploading Gallery Images...' : 'Tap to Upload Images or Drag-and-Drop files here'}
                       </p>
-                    </div>
+                    </label>
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Quote Text</label>
-                    <textarea 
-                      value={siteConfig.quoteText}
-                      onChange={(e) => setSiteConfig({...siteConfig, quoteText: e.target.value})}
-                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-sm italic h-24"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[0.6rem] uppercase tracking-widest text-mid font-bold">Quote Author</label>
-                    <input 
-                      type="text" 
-                      value={siteConfig.quoteAuthor}
-                      onChange={(e) => setSiteConfig({...siteConfig, quoteAuthor: e.target.value})}
-                      className="w-full bg-cream/30 border border-transparent focus:border-gold/20 p-4 rounded-2xl outline-none transition-all text-xs"
-                    />
-                  </div>
+                </div>
 
                   <button 
-                    onClick={() => handleSaveConfigSection(['siteName', 'marqueeText', 'galleryImages', 'quoteText', 'quoteAuthor'], 'Identity & General Content')}
+                    onClick={() => handleSaveConfigSection(['galleryImages'], 'Identity & General Content')}
                     className="w-full py-4 mt-6 bg-dark text-white rounded-2xl font-bold text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                     disabled={pendingUploads > 0}
                   >
                     <Save className="w-4 h-4" /> Save Brand & Content Settings
                   </button>
                 </div>
-              </div>
 
               {/* CARD 3: ABOUT PAGE CONFIG */}
               <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
@@ -1368,6 +1947,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                               alt="" 
                               loading="lazy"
                               decoding="async"
+                              referrerPolicy="no-referrer"
                             />
                             <p className="text-micro text-mid">Click to Change</p>
                           </div>
@@ -1386,7 +1966,6 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                     <Save className="w-4 h-4" /> Save About Settings
                   </button>
                 </div>
-              </div>
 
               {/* CARD 4: CONTACT & INFO */}
               <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-cream space-y-8">
@@ -1685,6 +2264,7 @@ export function AdminPortal({ setView }: { setView: (v: View) => void }) {
                               alt="" 
                               loading="lazy"
                               decoding="async"
+                              referrerPolicy="no-referrer"
                             />
                           ) : (
                             <div className="w-full h-full bg-cream/50" />

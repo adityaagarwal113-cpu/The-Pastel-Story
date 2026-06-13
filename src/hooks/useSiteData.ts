@@ -10,11 +10,21 @@ export const DEFAULT_SITE_CONFIG = {
   heroTitle: 'The Pastel Story',
   heroSubtitle: 'Effortless Elegance, Timeless Silhouettes',
   heroImage: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=1600&q=80',
+  heroSmallImage: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&q=80',
   marqueeText: '✦ FREE SHIPPING ON ORDERS ABOVE ₹999 ✦ HANDCRAFTED IN INDIA ✦ LUXURY PASTELS ✦',
-  galleryImages: [],
+  galleryImages: [
+    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80',
+    'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=1200&q=80',
+    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1200&q=80',
+    'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200&q=80',
+    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=1200&q=80',
+    'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80',
+    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1200&q=80',
+    'https://images.unsplash.com/photo-1509319117193-57bab727e09d?w=1200&q=80'
+  ],
   instagramUrl: 'https://www.instagram.com/pastelstory_by_shiwani',
   contactWhatsApp: '918444929090',
-  contactEmail: 'contact@pastelstory.com',
+  contactEmail: 'shiwaniag456@gmail.com',
   aboutTitle: 'Where Softness meets Modern Grace.',
   aboutVision: 'The Pastel Story was born from a simple desire: to bring back the whisper of elegance in an era of loud trends.',
   aboutSecondary: 'Every garment is a labor of love. We use only the finest cottons, linen blends, and silk silhouettes that feel like a second skin. Our fabrics are chosen not just for their appearance, but for their longevity and breathability.',
@@ -51,9 +61,13 @@ export function useSiteData() {
     // Real-time site config from Firestore
     const unsubConfig = onSnapshot(doc(db, 'site_config', 'main'), (snap) => {
       if (snap.exists()) {
+        const cloudData = snap.data();
         setSiteConfig({
           ...DEFAULT_SITE_CONFIG,
-          ...snap.data()
+          ...cloudData,
+          galleryImages: (cloudData.galleryImages && cloudData.galleryImages.length > 0)
+            ? cloudData.galleryImages.filter((img: any) => typeof img === 'string' && img.length > 0)
+            : DEFAULT_SITE_CONFIG.galleryImages
         });
       }
     }, (error) => {

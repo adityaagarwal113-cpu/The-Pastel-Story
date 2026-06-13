@@ -370,7 +370,7 @@ function AppContent() {
 
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.qty, 0), [cart]);
 
-  const isAdmin = user?.email === 'adityaagarwal113@gmail.com';
+  const isAdmin = user?.email === 'adityaagarwal113@gmail.com' || user?.email === 'shiwaniag456@gmail.com';
 
   if (loading) {
     return (

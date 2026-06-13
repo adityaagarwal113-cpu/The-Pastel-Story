@@ -17,7 +17,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && 
-             request.auth.token.email == "adityaagarwal113@gmail.com";
+             (request.auth.token.email == "adityaagarwal113@gmail.com" || 
+              request.auth.token.email == "shiwaniag456@gmail.com" ||
+              request.auth.uid == "nGaU8BiqU2OJN0SSwGCf3M0roN52");
     }
 
     function isValidId(id) {
@@ -87,6 +89,7 @@ service cloud.firestore {
         (!('trackingId' in incoming()) || (incoming().trackingId is string && incoming().trackingId.size() <= 100)) &&
         (!('trackingLink' in incoming()) || (incoming().trackingLink is string && incoming().trackingLink.size() <= 500))
       );
+      allow delete: if isAdmin();
 
       function isValidOrder(data) {
         return data.keys().hasAll(['orderId', 'userId', 'total', 'status', 'timestamp', 'userName', 'userPhone', 'address', 'pincode', 'items']) &&
@@ -114,9 +117,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       function isValidConfig(data) {
-        return (!('heroTitle' in data) || (data.heroTitle is string && data.heroTitle.size() <= 200)) &&
+        return (!('siteName' in data) || (data.siteName is string && data.siteName.size() <= 200)) &&
+               (!('heroTitle' in data) || (data.heroTitle is string && data.heroTitle.size() <= 200)) &&
                (!('heroSubtitle' in data) || (data.heroSubtitle is string && data.heroSubtitle.size() <= 500)) &&
                (!('heroImage' in data) || (data.heroImage is string && data.heroImage.size() <= 1000000)) &&
+               (!('heroSmallImage' in data) || (data.heroSmallImage is string && data.heroSmallImage.size() <= 1000000)) &&
                (!('heroButtonText' in data) || (data.heroButtonText is string && data.heroButtonText.size() <= 100)) &&
                (!('marqueeText' in data) || (data.marqueeText is string && data.marqueeText.size() <= 1000)) &&
                (!('galleryImages' in data) || (data.galleryImages is list && data.galleryImages.size() <= 50)) &&
@@ -125,7 +130,11 @@ service cloud.firestore {
                (!('aboutSecondary' in data) || (data.aboutSecondary is string && data.aboutSecondary.size() <= 2000)) &&
                (!('aboutImage' in data) || (data.aboutImage is string && data.aboutImage.size() <= 1000000)) &&
                (!('contactWhatsApp' in data) || (data.contactWhatsApp is string && data.contactWhatsApp.size() <= 50)) &&
-               (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 100));
+               (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 100)) &&
+               (!('instagramUrl' in data) || (data.instagramUrl is string && data.instagramUrl.size() <= 500)) &&
+               (!('quoteText' in data) || (data.quoteText is string && data.quoteText.size() <= 1000)) &&
+               (!('quoteAuthor' in data) || (data.quoteAuthor is string && data.quoteAuthor.size() <= 200)) &&
+               (!('categories' in data) || (data.categories is list && data.categories.size() <= 50));
       }
     }
 

@@ -106,7 +106,7 @@ export function Home({ products, siteConfig, onOpen, setView, onAddToCart, onWis
               >
                 <div className="h-full w-full overflow-hidden">
                    <img 
-                    src={products[0]?.imgs[0] || "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&q=80"} 
+                    src={siteConfig.heroSmallImage || "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&q=80"} 
                     alt="Detail" 
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
