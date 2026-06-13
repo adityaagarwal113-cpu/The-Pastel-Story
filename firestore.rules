@@ -104,6 +104,8 @@ service cloud.firestore {
                data.pincode is string && data.pincode.size() <= 30 &&
                data.items is string && data.items.size() <= 20000 &&
                (!('userEmail' in data) || (data.userEmail is string && data.userEmail.size() <= 200)) &&
+               (!('discountUsed' in data) || (data.discountUsed is string && data.discountUsed.size() <= 200)) &&
+               (!('discountAmount' in data) || (data.discountAmount is number && data.discountAmount >= 0)) &&
                (!('paymentProof' in data) || (data.paymentProof is string && data.paymentProof.size() <= 2000000)) &&
                (!('trackingId' in data) || (data.trackingId is string && data.trackingId.size() <= 200)) &&
                (!('trackingLink' in data) || (data.trackingLink is string && data.trackingLink.size() <= 1000));
